@@ -9,6 +9,8 @@ For each, plot:
     similary matrix of the first eigenvector for each method
 """
 from nems_lbhb.baphy_experiment import BAPHYExperiment
+from nems_lbhb.baphy import parse_cellid
+from charlieTools.ptd_ms.utils import which_rawids
 import charlieTools.baphy_remote as br
 import charlieTools.noise_correlations as nc
 import charlieTools.preprocessing as preproc
@@ -33,38 +35,109 @@ figpath = '/home/charlie/Desktop/lbhb/code/projects/APAN2020/results/figures/Del
 results = '/home/charlie/Desktop/lbhb/code/projects/APAN2020/results/drsc_axes.pickle'
 savefig = True
 
-options = {'resp': True, 'pupil': True, 'rasterfs': 10}
-batches = [324, 325]
+batches = [302, 307, 324, 325]
+Aoptions = dict.fromkeys(batches)
+Aoptions[302] = {'resp': True, 'pupil': True, 'rasterfs': 10}
+Aoptions[307] = {'resp': True, 'pupil': True, 'rasterfs': 20}
+Aoptions[324] = {'resp': True, 'pupil': True, 'rasterfs': 10}
+Aoptions[325] = {'resp': True, 'pupil': True, 'rasterfs': 10}
 recache = False
 cmap = 'bwr'
 nshuff = 10
 
 # extract evoked period decision window only (and collapse over this for nc measurements)
 # TODO: might want to also try different time windows (like with the PTD data)
-start = int(0.1 * options['rasterfs'])
-end = int(0.3 * options['rasterfs'])
+twin = {
+    302: {'start': 0.1, 'end': 0.3},
+    307: {'start': 0.35, 'end': 0.55}
+}
+twin[324] = twin[302]
+twin[325] = twin[302]
 
 results_dict = {}
 for batch in batches:
+    options = Aoptions[batch]
+    start = int(twin[batch]['start'] * options['rasterfs'])
+    end = int(twin[batch]['end'] * options['rasterfs'])
     sites = np.unique([c[:7] for c in nd.get_batch_cells(batch).cellid])
-    sites = [s for s in sites if s!='CRD013b']
+    sites = [s for s in sites if (s!='CRD013b') & ('gus' not in s)]   
+    if batch == 302:
+        sites1 = [s+'.e1:64' for s in sites]
+        sites2 = [s+'.e65:128' for s in sites]
+        sites = sites1 + sites2
     for site in sites:
         results_dict[site] = {}
-        manager = BAPHYExperiment(batch=batch, siteid=site)
+
+        if batch == 307:
+            rawid = which_rawids(site)
+        else:
+            rawid = None
+        print("Analyzing site: {}".format(site))
+        manager = BAPHYExperiment(batch=batch, siteid=site[:7], rawid=rawid)
         rec = manager.get_recording(recache=recache, **options)
         rec['resp'] = rec['resp'].rasterize()
-        rec = rec.and_mask(['PASSIVE_EXPERIMENT', 'HIT_TRIAL', 'CORRECT_REJECT_TRIAL'])
+        if batch == 302:
+            c, _ = parse_cellid({'cellid': site, 'batch': batch})
+            rec['resp'] = rec['resp'].extract_channels(c)
 
         # mask appropriate trials
-        ra = rec.and_mask(['HIT_TRIAL', 'CORRECT_REJECT_TRIAL'])
-        rp = rec.and_mask(['PASSIVE_EXPERIMENT'])
-        targets = thelp.sort_targets([f for f in ra['resp'].epochs.name.unique() if 'TAR_' in f])
-        catch = thelp.sort_targets([f for f in ra['resp'].epochs.name.unique() if 'CAT_' in f])
-        # keep only on-center tar / cat
-        oncenter = thelp.get_tar_freqs([f.strip('REM_') for f in ra['resp'].epochs.name.unique() if 'REM_' in f])[0]
-        targets = [t for t in targets if thelp.get_tar_freqs([t])[0]==oncenter]
-        catch = [t for t in catch if thelp.get_tar_freqs([t])[0]==oncenter]
-        all_stim = [s for s in ra['resp'].epochs.name.unique() if 'STIM_' in s] + targets + catch
+        ra = rec.copy()
+        ra = ra.create_mask(True)
+        if batch in [324, 325]:
+            ra = ra.and_mask(['HIT_TRIAL', 'CORRECT_REJECT_TRIAL'])
+        elif batch == 302:
+            ra = ra.and_mask(['HIT_TRIAL', 'CORRECT_REJECT_TRIAL', 'INCORRECT_HIT_TRIAL'])
+        elif batch == 307:
+            ra = ra.and_mask(['HIT_TRIAL'])
+
+        rp = rec.copy()
+        rp = rp.create_mask(True)
+        rp = rp.and_mask(['PASSIVE_EXPERIMENT'])
+
+        # find / sort epoch names
+        if batch in [324, 325]:
+            targets = thelp.sort_targets([f for f in ra['resp'].epochs.name.unique() if 'TAR_' in f])
+            targets = [t for t in targets if (ra['resp'].epochs.name==t).sum()>=5]
+            on_center = thelp.get_tar_freqs([f.strip('REM_') for f in ra['resp'].epochs.name.unique() if 'REM_' in f])[0]
+            targets = [t for t in targets if str(on_center) in t]
+            catch = [f for f in ra['resp'].epochs.name.unique() if 'CAT_' in f]
+            catch = [c for c in catch if str(on_center) in c]
+            targets_str = targets
+            catch_str = catch
+            all_stim = [s for s in ra['resp'].epochs.name.unique() if 'STIM_' in s] + targets + catch
+
+        elif batch == 307:
+            params = manager.get_baphy_exptparams()
+            params = [p for p in params if p['BehaveObjectClass']!='Passive'][0]
+            tf = params['TrialObject'][1]['TargetHandle'][1]['Names']
+            targets = [f'TAR_{t}' for t in tf]
+            if params['TrialObject'][1]['OverlapRefTar']=='Yes':
+                snrs = params['TrialObject'][1]['RelativeTarRefdB'] 
+            else:
+                snrs = ['Inf']
+            snrs = [s if (s!=np.inf) else 'Inf' for s in snrs]
+            targets_str = [f'TAR_{t}+{snr}dB+Noise' for snr, t in zip(snrs, tf)]
+            targets_str = targets_str[::-1]
+            targets = targets[::-1]
+            # only keep targets w/ at least 5 reps in active
+            targets_str = [ts for t, ts in zip(targets, targets_str) if (ra['resp'].epochs.name==t).sum()>=5]
+            targets = [t for t in targets if (ra['resp'].epochs.name==t).sum()>=5]
+            catch = []
+            catch_str = []
+            all_stim = [s for s in ra['resp'].epochs.name.unique() if 'STIM_' in s] + targets + catch
+
+        elif batch == 302:
+            params = manager.get_baphy_exptparams()
+            params = [p for p in params if p['BehaveObjectClass']!='Passive'][0]
+            tf = params['TrialObject'][1]['TargetHandle'][1]['Names']
+            targets = [f'TAR_{t}' for t in tf]
+            pdur = params['BehaveObject'][1]['PumpDuration']
+            rew = np.array(tf)[np.array(pdur)==1].tolist()
+            catch = [t for t in targets if (t.split('TAR_')[1] not in rew)]
+            catch_str = [(t+'+InfdB+Noise').replace('TAR_', 'CAT_') for t in targets if (t.split('TAR_')[1] not in rew)]
+            targets = [t for t in targets if (t.split('TAR_')[1] in rew)]
+            targets_str = [t+'+InfdB+Noise' for t in targets if (t.split('TAR_')[1] in rew)]
+            all_stim = [s for s in ra['resp'].epochs.name.unique() if 'STIM_' in s] + targets + catch
 
         # set up figure
         f, ax = plt.subplots(3, 5, figsize=(15, 9))
@@ -392,8 +465,8 @@ for batch in batches:
         if savefig:
             f.savefig(figpath + f"drsc_axis_{site}.pdf")
 
+        plt.close('all')
+
 # save results
 with open(results, 'wb') as handle:
     pickle.dump(results_dict, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
-plt.show()

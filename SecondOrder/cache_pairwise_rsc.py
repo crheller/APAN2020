@@ -6,9 +6,11 @@ from nems_lbhb.baphy_experiment import BAPHYExperiment
 import charlieTools.noise_correlations as nc
 import charlieTools.preprocessing as preproc
 import nems_lbhb.tin_helpers as thelp
+from nems_lbhb.baphy import parse_cellid
 import nems.db as nd
 import pandas as pd
 import numpy as np
+from charlieTools.ptd_ms.utils import which_rawids
 
 res_path = '/home/charlie/Desktop/lbhb/code/projects/APAN2020/results/'
 
@@ -46,7 +48,7 @@ twin[324] = twin[302]
 twin[325] = twin[302]
 
 recache = False
-regress_pupil = False  # regress out first order pupil
+regress_pupil = True  # regress out first order pupil
 
 dfs = []
 for batch in batches:
@@ -55,10 +57,21 @@ for batch in batches:
     options = Aoptions[batch]
     time_bins = twin[batch]
     sites = [s for s in sites if (s!='CRD013b') & ('gus' not in s)]
+    if batch == 302:
+        sites1 = [s+'.e1:64' for s in sites]
+        sites2 = [s+'.e65:128' for s in sites]
+        sites = sites1 + sites2
     for site in sites:
-        manager = BAPHYExperiment(batch=batch, siteid=site)
+        if batch == 307:
+            rawid = which_rawids(site)
+        else:
+            rawid = None
+        manager = BAPHYExperiment(batch=batch, siteid=site[:7], rawid=rawid)
         rec = manager.get_recording(recache=recache, **options)
         rec['resp'] = rec['resp'].rasterize()
+        if batch == 302:
+            c, _ = parse_cellid({'cellid': site, 'batch': batch})
+            rec['resp'] = rec['resp'].extract_channels(c)
 
         behavior_performance = manager.get_behavior_performance(**options)
         options['keep_following_incorrect_trial'] = True
@@ -91,7 +104,7 @@ for batch in batches:
             targets = [t for t in targets if str(on_center) in t]
             catch = [f for f in ra['resp'].epochs.name.unique() if 'CAT_' in f]
             catch = [c for c in catch if str(on_center) in c]
-            target_str = targets
+            targets_str = targets
             catch_str = catch
         elif batch == 307:
             params = manager.get_baphy_exptparams()
@@ -107,8 +120,10 @@ for batch in batches:
             targets_str = targets_str[::-1]
             targets = targets[::-1]
             # only keep targets w/ at least 5 reps in active
-            targets_str = [ts for t, ts in zip(targets, targets_str) if (_ra['resp'].epochs.name==t).sum()>=5]
-            targets = [t for t in targets if (_ra['resp'].epochs.name==t).sum()>=5]
+            targets_str = [ts for t, ts in zip(targets, targets_str) if (ra['resp'].epochs.name==t).sum()>=5]
+            targets = [t for t in targets if (ra['resp'].epochs.name==t).sum()>=5]
+            catch = []
+            catch_str = []
         elif batch == 302:
             params = manager.get_baphy_exptparams()
             params = [p for p in params if p['BehaveObjectClass']!='Passive'][0]
