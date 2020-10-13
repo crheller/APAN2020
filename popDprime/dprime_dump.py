@@ -7,6 +7,7 @@ define TDR over all stims? Or on pairwise basis? Both? Use PC-space too?
 """
 
 from nems_lbhb.baphy_experiment import BAPHYExperiment
+from nems_lbhb.baphy import parse_cellid
 from charlieTools.ptd_ms.utils import which_rawids
 import charlieTools.baphy_remote as br
 import charlieTools.noise_correlations as nc
@@ -31,8 +32,8 @@ mpl.rcParams['font.size'] = 14
 # fig path
 fpath = '/home/charlie/Desktop/lbhb/code/projects/APAN2020/results/figures/EllipsePlots/'
 res_path = '/home/charlie/Desktop/lbhb/code/projects/APAN2020/results/'
-fpath = '/auto/users/hellerc/code/projects/APAN2020/results/figures/EllipsePlots/'
-res_path = '/auto/users/hellerc/code/projects/APAN2020/results/'
+#fpath = '/auto/users/hellerc/code/projects/APAN2020/results/figures/EllipsePlots/'
+#res_path = '/auto/users/hellerc/code/projects/APAN2020/results/'
 
 # recording load options
 batches = [302, 307, 324, 325]
@@ -72,7 +73,11 @@ for batch in batches:
     end = dec_window[batch]['end']
     options = Aoptions[batch]
     sites = np.unique([c[:7] for c in nd.get_batch_cells(batch).cellid])
-    sites = [s for s in sites if (s!='CRD013b') & ('gus' not in s)]
+    sites = [s for s in sites if (s!='CRD013b') & ('gus' not in s)]    
+    if batch == 302:
+        sites1 = [s+'.e1:64' for s in sites]
+        sites2 = [s+'.e65:128' for s in sites]
+        sites = sites1 + sites2
     for site in sites:
         skip_site = False
         # set up subplots for PCA / TDR projections
@@ -84,9 +89,12 @@ for batch in batches:
         else:
             rawid = None
         print("Analyzing site: {}".format(site))
-        manager = BAPHYExperiment(batch=batch, siteid=site, rawid=rawid)
+        manager = BAPHYExperiment(batch=batch, siteid=site[:7], rawid=rawid)
         rec = manager.get_recording(recache=recache, **options)
         rec['resp'] = rec['resp'].rasterize()
+        if batch == 302:
+            c, _ = parse_cellid({'cellid': site, 'batch': batch})
+            rec['resp'] = rec['resp'].extract_channels(c)
 
         # mask appropriate trials
         if batch in [324, 325]:
@@ -193,15 +201,14 @@ for batch in batches:
             BwG, gR = thelp.make_tbp_colormaps(ref_str, catch_str+targets_str, use_tar_freq_idx=tar_idx)
             # get all pairwise combos of targets / catches
             pairs = list(combinations(['REFERENCE', 'TARGET'] + ref_stim + sounds, 2))
-            pairs_str = list(combinations(['REFERENCE', 'TARGET'] + ref_str + catch_str + targets_str, 2))
+            pairs_str = list(combinations(['REFERENCE', 'TARGET'] + ref_str + targets_str + catch_str, 2))
+            pairs_str = [p for p, p_ in zip(pairs_str, pairs) if p_[0]!=p_[1]]
             pairs = [p for p in pairs if p[0]!=p[1]]
-            pairs_str = [p for p in pairs_str if p[0]!=p[1]]
             if len(targets)==1:
                 pairs = [p for p in pairs if (p!=('TARGET', targets[0])) & (p!=(targets[0], 'TARGET'))]
                 pairs_str = [p for p in pairs_str if (p!=('TARGET', targets[0])) & (p!=(targets[0], 'TARGET'))]
-            index = [p[0]+'_'+p[1] for p in pairs]
-            df = pd.DataFrame() #columns=['dp_opt', 'wopt', 'evecs', 'evals', 'evec_sim', 'dU', 'dp_diag', 'tdr_overall', 'pca', 'active', 'pair' \
-                                    #'snr1', 'snr2', 'cat_cat', 'tar_tar', 'cat_tar', 'f1', 'f2', 'DI'])
+
+            df = pd.DataFrame() 
 
             # get overall TDR axes (grouping target / catch)
             tar = np.vstack([v[:, :, start:end].mean(axis=-1) for (k, v) in rec['resp'].extract_epochs(targets, mask=rec['mask']).items()])
@@ -388,16 +395,22 @@ for batch in batches:
                     raise ValueError("Ambiguous stimulus pair")
 
                 # get behavioral DI
-                if ('REFERENCE' in pair[0]) & (('TAR_' in pair[1]) | ('CAT_' in pair[1])):
+                if ('REFERENCE' in pair_str[0]) & (('TAR_' in pair_str[1]) | ('CAT_' in pair_str[1])):
                     di = behavior_performance['DI'][pair[1].strip('TAR_').strip('CAT_')]
-                elif ('REFERENCE' in pair[1]) & (('TAR_' in pair[0]) | ('CAT_' in pair[0])):
+                elif ('REFERENCE' in pair_str[1]) & (('TAR_' in pair_str[0]) | ('CAT_' in pair_str[0])):
                     di = behavior_performance['DI'][pair[0].strip('TAR_').strip('CAT_')]
-                elif ('STIM_' in pair[0]) | ('STIM_' in pair[1]):
+                elif ('STIM_' in pair_str[0]) | ('STIM_' in pair_str[1]):
                     di = np.inf
-                elif ('TAR_' in pair[0]) & ('CAT_' in pair[1]):
-                    di = behavior_performance['LI'][pair[0].strip('TAR_').strip('CAT_')+'_'+pair[1].strip('TAR_').strip('CAT_')]
-                elif ('TAR_' in pair[1]) & ('CAT_' in pair[0]):
-                    di = behavior_performance['LI'][pair[1].strip('TAR_').strip('CAT_')+'_'+pair[0].strip('TAR_').strip('CAT_')]
+                elif ('TAR_' in pair_str[0]) & ('CAT_' in pair_str[1]):
+                    try:
+                        di = behavior_performance['LI'][pair[0].strip('TAR_').strip('CAT_')+'_'+pair[1].strip('TAR_').strip('CAT_')]
+                    except:
+                        di = behavior_performance['DI'][pair[0].strip('TAR_').strip('CAT_')]
+                elif ('TAR_' in pair_str[1]) & ('CAT_' in pair_str[0]):
+                    try:
+                        di = behavior_performance['LI'][pair[1].strip('TAR_').strip('CAT_')+'_'+pair[0].strip('TAR_').strip('CAT_')]
+                    except:
+                        di = behavior_performance['DI'][pair[1].strip('TAR_').strip('CAT_')]
                 else:
                     di = np.inf
                 # extract data over all trials for TDR

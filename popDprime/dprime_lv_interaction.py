@@ -12,7 +12,7 @@ import matplotlib as mpl
 mpl.rcParams['axes.spines.right'] = False
 mpl.rcParams['axes.spines.top'] = False
 
-df = pd.read_pickle('/home/charlie/Desktop/lbhb/code/projects/APAN2020/results/res_pr.pickle')
+df = pd.read_pickle('/home/charlie/Desktop/lbhb/code/projects/APAN2020/results/res.pickle')
 lv = pickle.load(open('/home/charlie/Desktop/lbhb/code/projects/APAN2020/results/drsc_axes.pickle', "rb"))
 
 mask = df.cat_tar & ~df.tdr_overall & ~df.pca & (df.f1==df.f2)
@@ -48,18 +48,5 @@ df[df.active].groupby(by='snr1').mean()['lv_cos_dU']
 
 
 plt.show()
-
-
-'''
-Notes 10.11.2020
-
-Noise suppression seems low dim (delta rsc plots, compare with raw pairwise noise correlations)
-
-Noise is not aligned with discrimination axis for simple task (pure tone), but is more aligned for low SNR targets
-
-Noise changes (maybe) correlated with behavior, discrim not (at least for PTD data... need to link this with TBP)
-
-
-'''
 
 
