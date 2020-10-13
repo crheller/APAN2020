@@ -32,8 +32,8 @@ mpl.rcParams['font.size'] = 14
 # fig path
 fpath = '/home/charlie/Desktop/lbhb/code/projects/APAN2020/results/figures/EllipsePlots/'
 res_path = '/home/charlie/Desktop/lbhb/code/projects/APAN2020/results/'
-#fpath = '/auto/users/hellerc/code/projects/APAN2020/results/figures/EllipsePlots/'
-#res_path = '/auto/users/hellerc/code/projects/APAN2020/results/'
+fpath = '/auto/users/hellerc/code/projects/APAN2020/results/figures/EllipsePlots/'
+res_path = '/auto/users/hellerc/code/projects/APAN2020/results/'
 
 # recording load options
 batches = [302, 307, 324, 325]
@@ -48,7 +48,7 @@ recache = False
 zscore = False
 
 # regress out first order pupil?
-regress_pupil = True
+regress_pupil = False
 regress_task = False
 
 # plot ref
@@ -350,12 +350,20 @@ for batch in batches:
             f.tight_layout()
 
             if zscore:
-                if regress_pupil:
+                if regress_pupil & regress_task:
+                    f.savefig(fpath + f'{site}{fext}_zscore_pr_br.pdf')
+                elif regress_task:
+                    f.savefig(fpath + f'{site}{fext}_zscore_br.pdf')
+                elif regress_pupil:
                     f.savefig(fpath + f'{site}{fext}_zscore_pr.pdf')
                 else:
                     f.savefig(fpath + f'{site}{fext}_zscore.pdf')
             else:
-                if regress_pupil:
+                if regress_pupil & regress_task:
+                    f.savefig(fpath + f'{site}{fext}_pr_br.pdf')
+                elif regress_task:
+                    f.savefig(fpath + f'{site}{fext}_br.pdf')
+                elif regress_pupil:
                     f.savefig(fpath + f'{site}{fext}_pr.pdf')
                 else:
                     f.savefig(fpath + f'{site}{fext}.pdf')
@@ -543,12 +551,20 @@ dtypes_new = {k: v for k, v in dtypes.items() if k in df.columns}
 df = df.astype(dtypes_new)
 
 if zscore:
-    if regress_pupil:
+    if regress_pupil & regress_task:
+        df.to_pickle(res_path + 'res_zscore_pr_br.pickle')
+    elif regress_task:
+        df.to_pickle(res_path + 'res_zscore_br.pickle')
+    elif regress_pupil:
         df.to_pickle(res_path + 'res_zscore_pr.pickle')
     else:
         df.to_pickle(res_path + 'res_zscore.pickle')
 else:
-    if regress_pupil:
+    if regress_pupil & regress_task:
+        df.to_pickle(res_path + 'res_pr_br.pickle')
+    elif regress_task:
+        df.to_pickle(res_path + 'res_br.pickle')
+    elif regress_pupil:
         df.to_pickle(res_path + 'res_pr.pickle')
     else:
         df.to_pickle(res_path + 'res.pickle')

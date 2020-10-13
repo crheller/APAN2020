@@ -12,7 +12,7 @@ import pandas as pd
 import numpy as np
 from charlieTools.ptd_ms.utils import which_rawids
 
-res_path = '/home/charlie/Desktop/lbhb/code/projects/APAN2020/results/'
+res_path = '/auto/users/hellerc/code/projects/APAN2020/results/'
 
 batches = [302, 307, 324, 325]
 Aoptions = dict.fromkeys(batches)
@@ -41,7 +41,10 @@ twin = {
         (0.65, 0.75),
         (0.75, 0.85),
         (0.85, 0.95),
-        (1.05, 1.15)
+        (1.05, 1.15),
+        (0.15, 0.35),
+        (0.35, 0.55),
+        (0.55, 0.75),
     ]
 }
 twin[324] = twin[302]
@@ -49,6 +52,7 @@ twin[325] = twin[302]
 
 recache = False
 regress_pupil = True  # regress out first order pupil
+regress_task = True
 
 dfs = []
 for batch in batches:
@@ -80,8 +84,12 @@ for batch in batches:
         behavior_performance_all = manager.get_behavior_performance(**options)
 
         # regress out first order pupil
-        if regress_pupil:
+        if regress_pupil & regress_task:
+            rec = preproc.regress_state(rec, state_sigs=['pupil', 'behavior'])
+        elif regress_pupil:
             rec = preproc.regress_state(rec, state_sigs=['pupil'])
+        elif regress_task:
+            rec = preproc.regress_state(rec, state_sigs=['behavior'])
 
         ra = rec.copy()
         ra = ra.create_mask(True)
@@ -203,7 +211,11 @@ dtypes_new = {k: v for k, v in dtypes.items() if k in dfall.columns}
 dfall = dfall.astype(dtypes_new)
 
 # save results
-if regress_pupil:
+if regress_pupil & regress_task:
+    dfall.to_pickle(res_path + 'rsc_df_pr_br.pickle')
+elif regress_task:
+    dfall.to_pickle(res_path + 'rsc_df_br.pickle')
+elif regress_pupil:
     dfall.to_pickle(res_path + 'rsc_df_pr.pickle')
 else:
     dfall.to_pickle(res_path + 'rsc_df.pickle')

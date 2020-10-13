@@ -5,6 +5,7 @@ Main Q: is delta variance on PC_1 correlated with change in mean pairwise rsc? T
     Idea is for this to be an early figure that says, "forget pairwise correlations, think about this 
     as a low D change in variance in state space"
 """
+import scipy.stats as ss
 import pickle
 import pandas as pd
 import numpy as np
@@ -14,30 +15,77 @@ import matplotlib as mpl
 mpl.rcParams['axes.spines.right'] = False
 mpl.rcParams['axes.spines.top'] = False
 
-rsc = pd.read_pickle('/home/charlie/Desktop/lbhb/code/projects/APAN2020/results/rsc_df.pickle')
-lv = pickle.load(open('/home/charlie/Desktop/lbhb/code/projects/APAN2020/results/drsc_axes.pickle', "rb" ))
+rsc = pd.read_pickle('/auto/users/hellerc/code/projects/APAN2020/results/rsc_df.pickle')
+lv = pickle.load(open('/auto/users/hellerc/code/projects/APAN2020/results/drsc_axes.pickle', "rb" ))
 
-tbin = '0.1_0.3'  # only time window used for lv estimation so far
-
+di_metric='DIref'
+sigcorr = False
+ # time window used for lv estimation should match time bin uses for rsc calculation
+tbins = {
+    302: '0.1_0.3',
+    307: '0.35_0.55',
+    324: '0.1_0.3',
+    325: '0.1_0.3' 
+}
 # correlation between eval1 and delta pairswise noise correlation across sites
-f, ax = plt.subplots(1, 1, figsize=(5, 5))
+f, ax = plt.subplots(1, 3, figsize=(12, 4))
 x = []
 y = []
+beh = []
 sig = []
 for site in lv.keys():
-    diff = (rsc[(rsc.site==site) & (rsc.tbin==tbin)]['passive'] - rsc[(rsc.site==site) & (rsc.tbin==tbin)]['active']).mean()
+    if rsc[rsc.site==site].batch.iloc[0]==307:
+        tbin = tbins[307]
+    elif rsc[rsc.site==site].batch.iloc[0]==302:
+        tbin = tbins[302]
+    elif rsc[rsc.site==site].batch.iloc[0]==324:
+        tbin = tbins[324]
+    elif rsc[rsc.site==site].batch.iloc[0]==325:
+        tbin = tbins[325]
+
+    if sigcorr:
+        sigmask = (rsc.pp < 0.05) | (rsc.pa < 0.05)
+        diff = (rsc[(rsc.site==site) & (rsc.tbin==tbin) & sigmask]['passive'] - rsc[(rsc.site==site) & (rsc.tbin==tbin) & sigmask]['active']).mean()
+    else:
+        diff = (rsc[(rsc.site==site) & (rsc.tbin==tbin)]['passive'] - rsc[(rsc.site==site) & (rsc.tbin==tbin)]['active']).mean()
     if lv[site]['tarCat']['nSigDim'] >= 1:
         sig.append(1)
     else:
         sig.append(0)
     x.append(diff)
-    y.append(lv[site]['tarCat']['evals'][0] / sum(abs(lv[site]['tarCat']['evals'])))
+    lv_delta = lv[site]['tarCat']['evals'][0] / sum(abs(lv[site]['tarCat']['evals']))
+    y.append(lv_delta)
+    rsc.at[(rsc.site==site) & (rsc.tbin==tbin), 'lv_delta'] = lv_delta
+    mb = rsc[(rsc.site==site) & (rsc.tbin==tbin)].groupby('snr').mean()[di_metric]
+    beh.append(mb[mb!=np.inf].mean())
 
-ax.scatter(x, y, s=50, edgecolor='k', color='tab:blue')
-ax.scatter(np.array(x)[np.array(sig)==1], 
+ax[0].scatter(x, y, s=50, edgecolor='k', color='tab:blue')
+ax[0].scatter(np.array(x)[np.array(sig)==1], 
                 np.array(y)[np.array(sig)==1], s=50, edgecolor='k', color='tab:orange')
-ax.set_xlabel(r"$\Delta r_{sc}$")
-ax.set_ylabel(r"$\Delta$ variance"+"\non noise corr. axis")
+ax[0].axhline(0, linestyle='--', color='k')
+ax[0].axvline(0, linestyle='--', color='k')
+ax[0].set_xlabel(r"$\Delta r_{sc}$")
+ax[0].set_ylabel(r"$\Delta$ variance"+"\non noise corr. axis")
+r, p = ss.pearsonr(x, y)
+ax[0].set_title(f"r: {round(r, 3)}, pval: {round(p, 3)}")
+
+# compare change in latent variable variance / noise correlations to behavior
+
+ax[1].scatter(beh, x, s=50, edgecolor='k', color='tab:blue')
+ax[1].axhline(0, linestyle='--', color='k')
+ax[1].axvline(0.5, linestyle='--', color='k')
+ax[1].set_xlabel(r"Behavior performance")
+ax[1].set_ylabel(r"$\Delta r_{sc}$")
+r, p = ss.pearsonr(beh, x)
+ax[1].set_title(f"r: {round(r, 3)}, pval: {round(p, 3)}")
+
+ax[2].scatter(beh, y, s=50, edgecolor='k', color='tab:blue')
+ax[2].axhline(0, linestyle='--', color='k')
+ax[2].axvline(0.5, linestyle='--', color='k')
+ax[2].set_xlabel(r"Behavior performance")
+ax[2].set_ylabel(r"$\Delta$ variance"+"\non noise corr. axis")
+r, p = ss.pearsonr(beh, y)
+ax[2].set_title(f"r: {round(r, 3)}, pval: {round(p, 3)}")
 
 f.tight_layout()
 

@@ -18,14 +18,14 @@
 * Change in rsc is correlated with behavior
     * Maybe show time bin breakdown?
 
-* rsc axis is (isn't?) aligned with ideal decoding axis. 
-
-* Ideal decoding performance increases (but is/isn't correlated with behavior)
-    * To explain this, nice diagram. Also use temporal decoding?
+* Cartoon -- what could this mean for an ideal observer (decoder)?
 
 * Noise suppression seems low dim (delta rsc plots, compare with raw pairwise noise correlations)
     * Is this axis correlated with behavior too?
+    * Is (isn't?) aligned with ideal decoding axis. 
+        * Hard vs. easy discrimination? (TBP data)
 
-* Noise is not aligned with discrimination axis for simple task (pure tone), but is more aligned for low SNR targets
+* Ideal decoding performance increases (but is/isn't correlated with behavior overall)
+    * Temporal decoding to illustrate trial structure / choice of decoding window?
 
 * Conclusion would be that low-D noise is suppessed by engagement for the purpose of improving performance for difficult tasks

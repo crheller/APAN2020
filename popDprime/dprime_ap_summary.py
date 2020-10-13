@@ -11,7 +11,7 @@ import matplotlib as mpl
 mpl.rcParams['axes.spines.right'] = False
 mpl.rcParams['axes.spines.top'] = False
 
-df = pd.read_pickle('/home/charlie/Desktop/lbhb/code/projects/APAN2020/results/res.pickle')
+df = pd.read_pickle('/auto/users/hellerc/code/projects/APAN2020/results/res.pickle')
 df['dp_opt_sqrt'] = np.sqrt(df['dp_opt'])
 df['dp_diag_sqrt'] = np.sqrt(df['dp_diag'])
 # for 302, catch = n.r. tone
@@ -20,7 +20,7 @@ df['dp_diag_sqrt'] = np.sqrt(df['dp_diag'])
 
 
 # very crude look at data. One point for each target/catch combo across all sites
-mask = ~df.tdr_overall & (df.cat_tar | (df.atar_aref & (df.batch==307))) & ~df.pca
+mask = df.tdr_overall & ((df.cat_tar & (df.batch==324) & (df.f1==df.f2)) | (df.aref_tar & (df.batch==307)) | (df.aref_tar & (df.batch==302))) & ~df.pca
 
 dpval = 'dp_opt_sqrt'
 f, ax = plt.subplots(1, 1, figsize=(5, 5))
