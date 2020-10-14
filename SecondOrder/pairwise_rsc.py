@@ -1,6 +1,7 @@
 """
 Exploratory analysis of pairwise rsc
 """
+from settings import DIR
 import scipy.stats as ss
 import pandas as pd
 import numpy as np
@@ -10,7 +11,7 @@ import matplotlib as mpl
 mpl.rcParams['axes.spines.right'] = False
 mpl.rcParams['axes.spines.top'] = False
 
-df = pd.read_pickle('/auto/users/hellerc/code/projects/APAN2020/results/rsc_df.pickle')
+df = pd.read_pickle(DIR+'APAN2020/results/rsc_df.pickle')
 df['diff'] = df['passive'] - df['active']
 tbin = ['0_0.1', '0.1_0.2', '0.2_0.3', '0.3_0.4', '0.4_0.5']
 di = 'DIref'

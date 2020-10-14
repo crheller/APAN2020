@@ -20,12 +20,14 @@
 
 * Cartoon -- what could this mean for an ideal observer (decoder)?
 
+* Ideal decoding performance increases (but is/isn't correlated with behavior overall)
+    * Temporal decoding to illustrate trial structure / choice of decoding window?
+    * Are changes in noise accounting for this?
+
 * Noise suppression seems low dim (delta rsc plots, compare with raw pairwise noise correlations)
     * Is this axis correlated with behavior too?
     * Is (isn't?) aligned with ideal decoding axis. 
         * Hard vs. easy discrimination? (TBP data)
+        * PC/TDR plots to show the decoding space?
 
-* Ideal decoding performance increases (but is/isn't correlated with behavior overall)
-    * Temporal decoding to illustrate trial structure / choice of decoding window?
-
-* Conclusion would be that low-D noise is suppessed by engagement for the purpose of improving performance for difficult tasks
+* Conclusion is that low-D noise is suppessed by engagement for the purpose of improving performance for difficult tasks
