@@ -5,7 +5,7 @@ In active / passive.
 
 define TDR over all stims? Or on pairwise basis? Both? Use PC-space too?
 """
-
+from settings import DIR
 from nems_lbhb.baphy_experiment import BAPHYExperiment
 from nems_lbhb.baphy import parse_cellid
 from charlieTools.ptd_ms.utils import which_rawids
@@ -30,10 +30,8 @@ mpl.rcParams['pdf.fonttype'] = 42
 mpl.rcParams['font.size'] = 14
 
 # fig path
-fpath = '/home/charlie/Desktop/lbhb/code/projects/APAN2020/results/figures/EllipsePlots/'
-res_path = '/home/charlie/Desktop/lbhb/code/projects/APAN2020/results/'
-fpath = '/auto/users/hellerc/code/projects/APAN2020/results/figures/EllipsePlots/'
-res_path = '/auto/users/hellerc/code/projects/APAN2020/results/'
+fpath = DIR+ 'results/figures/EllipsePlots/'
+res_path = DIR + 'results/'
 
 # recording load options
 batches = [302, 307, 324, 325]
@@ -52,7 +50,7 @@ regress_pupil = False
 regress_task = False
 
 # plot ref
-plot_ref = True
+plot_ref = False
 if plot_ref:
     fext = '_withREF'
 else:
@@ -250,34 +248,34 @@ for batch in batches:
                     r1 = (r1 - m) / sd
                     r1 = r1.dot(all_tdr_weights.T).T
                     ax[0, 0].set_title('Active')
-                    ax[0, 0].scatter(r1[0], r1[1], alpha=0.2, s=10, lw=0, color=BwG(i))
+                    ax[0, 0].scatter(r1[0], r1[1], alpha=0.8, s=15, lw=0, color=BwG(i))
                     el = thelp.compute_ellipse(r1[0], r1[1])
-                    ax[0, 0].plot(el[0], el[1], color=BwG(i), alpha=0.2, label=ref_str[i].split('STIM_')[1])
+                    ax[0, 0].plot(el[0], el[1], color=BwG(i), alpha=0.8, label=ref_str[i].split('STIM_')[1], lw=2)
 
                     r1 = rec['resp'].extract_epoch(t, mask=rp['mask'])[:, :, start:end].mean(axis=-1)
                     r1 = (r1 - m) / sd
                     r1 = r1.dot(all_tdr_weights.T).T
                     ax[0, 1].set_title('Passive')
-                    ax[0, 1].scatter(r1[0], r1[1], alpha=0.2, s=10, lw=0, color=BwG(i))
+                    ax[0, 1].scatter(r1[0], r1[1], alpha=0.8, s=15, lw=0, color=BwG(i))
                     el = thelp.compute_ellipse(r1[0], r1[1])
-                    ax[0, 1].plot(el[0], el[1], color=BwG(i), alpha=0.2)
+                    ax[0, 1].plot(el[0], el[1], color=BwG(i), alpha=0.8, lw=2)
 
                     # =============================== PCA ========================================
                     r1 = rec['resp'].extract_epoch(t, mask=ra['mask'])[:, :, start:end].mean(axis=-1)
                     r1 = (r1 - m) / sd
                     r1 = r1.dot(pc_axes.T).T
                     ax[1, 0].set_title('Active')
-                    ax[1, 0].scatter(r1[0], r1[1], alpha=0.2, s=10, lw=0, color=BwG(i))
+                    ax[1, 0].scatter(r1[0], r1[1], alpha=0.8, s=15, lw=0, color=BwG(i))
                     el = thelp.compute_ellipse(r1[0], r1[1])
-                    ax[1, 0].plot(el[0], el[1], color=BwG(i), alpha=0.2)
+                    ax[1, 0].plot(el[0], el[1], color=BwG(i), alpha=0.8, lw=2)
 
                     r1 = rec['resp'].extract_epoch(t, mask=rp['mask'])[:, :, start:end].mean(axis=-1)
                     r1 = (r1 - m) / sd
                     r1 = r1.dot(pc_axes.T).T
                     ax[1, 1].set_title('Passive')
-                    ax[1, 1].scatter(r1[0], r1[1], alpha=0.2, s=10, lw=0, color=BwG(i))
+                    ax[1, 1].scatter(r1[0], r1[1], alpha=0.8, s=15, lw=0, color=BwG(i))
                     el = thelp.compute_ellipse(r1[0], r1[1])
-                    ax[1, 1].plot(el[0], el[1], color=BwG(i), alpha=0.2)
+                    ax[1, 1].plot(el[0], el[1], color=BwG(i), alpha=0.8, lw=2)
                 
 
             # TARGETS / CATCHES
@@ -287,7 +285,7 @@ for batch in batches:
                 r1 = (r1 - m) / sd
                 r1 = r1.dot(all_tdr_weights.T).T
                 ax[0, 0].set_title('Active')
-                ax[0, 0].scatter(r1[0], r1[1], alpha=1, s=10, lw=0, color=gR(i))
+                ax[0, 0].scatter(r1[0], r1[1], alpha=1, s=15, lw=0, color=gR(i))
                 el = thelp.compute_ellipse(r1[0], r1[1])
                 ax[0, 0].plot(el[0], el[1], color=gR(i), label=ts, lw=2)
 
@@ -295,7 +293,7 @@ for batch in batches:
                 r1 = (r1 - m) / sd
                 r1 = r1.dot(all_tdr_weights.T).T
                 ax[0, 1].set_title('Passive')
-                ax[0, 1].scatter(r1[0], r1[1], alpha=1, s=10, lw=0, color=gR(i))
+                ax[0, 1].scatter(r1[0], r1[1], alpha=1, s=15, lw=0, color=gR(i))
                 el = thelp.compute_ellipse(r1[0], r1[1])
                 ax[0, 1].plot(el[0], el[1], color=gR(i), lw=2)
 
@@ -304,7 +302,7 @@ for batch in batches:
                 r1 = (r1 - m) / sd
                 r1 = r1.dot(pc_axes.T).T
                 ax[1, 0].set_title('Active')
-                ax[1, 0].scatter(r1[0], r1[1], alpha=1, s=10, lw=0, color=gR(i))
+                ax[1, 0].scatter(r1[0], r1[1], alpha=1, s=15, lw=0, color=gR(i))
                 el = thelp.compute_ellipse(r1[0], r1[1])
                 ax[1, 0].plot(el[0], el[1], color=gR(i), label=ts, lw=2)
 
@@ -312,7 +310,7 @@ for batch in batches:
                 r1 = (r1 - m) / sd
                 r1 = r1.dot(pc_axes.T).T
                 ax[1, 1].set_title('Passive')
-                ax[1, 1].scatter(r1[0], r1[1], alpha=1, s=10, lw=0, color=gR(i))
+                ax[1, 1].scatter(r1[0], r1[1], alpha=1, s=15, lw=0, color=gR(i))
                 el = thelp.compute_ellipse(r1[0], r1[1])
                 ax[1, 1].plot(el[0], el[1], color=gR(i), lw=2)
 

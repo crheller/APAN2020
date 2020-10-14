@@ -19,7 +19,7 @@ df = pd.read_pickle(DIR+"results/res.pickle")
 df['dp_opt_sqrt'] = np.sqrt(df['dp_opt'])
 df['dp_diag_sqrt'] = np.sqrt(df['dp_diag'])
 di_metric = 'DI'  # for this data, DI = DIref if df.aref_tar = True
-dp_metric = 'dp_diag_sqrt'
+dp_metric = 'dp_opt_sqrt'
 diff_norm = True
 
 # ======================== FIGURE 1 ================================
@@ -32,8 +32,8 @@ res = df[mask]
 resga = res[res.active].groupby(by='site').mean()
 resgp = res[~res.active].groupby(by='site').mean()
 ax[0].scatter(resgp[dp_metric], resga[dp_metric], s=50, edgecolor='white', color='tab:orange')
-ax[0].errorbar(resgp[dp_metric].mean(), resga[dp_metric].mean(), yerr=resga[dp_metric].sem(),
-                    xerr=resgp[dp_metric].sem(), marker='o', markersize=5, color='k', capsize=1)
+#ax[0].errorbar(resgp[dp_metric].mean(), resga[dp_metric].mean(), yerr=resga[dp_metric].sem(),
+#                    xerr=resgp[dp_metric].sem(), marker='o', markersize=5, color='k', capsize=1)
 mi = np.min(pd.concat([resga[dp_metric], resgp[dp_metric]]))
 m = np.max(pd.concat([resga[dp_metric], resgp[dp_metric]]))
 ax[0].plot([mi, m], [mi, m], linestyle='--', color='k')
