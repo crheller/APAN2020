@@ -15,7 +15,7 @@ import matplotlib as mpl
 mpl.rcParams['axes.spines.right'] = False
 mpl.rcParams['axes.spines.top'] = False
 
-df = pd.read_pickle(DIR+"results/res.pickle")
+df = pd.read_pickle(DIR+"results/res_deflate.pickle")
 df['dp_opt_sqrt'] = np.sqrt(df['dp_opt'])
 df['dp_diag_sqrt'] = np.sqrt(df['dp_diag'])
 di_metric = 'DI'  # for this data, DI = DIref if df.aref_tar = True
@@ -25,7 +25,7 @@ diff_norm = True
 # ======================== FIGURE 1 ================================
 f, ax = plt.subplots(1, 2, figsize=(8, 4))
 
-mask = df.aref_tar & df.tdr_overall
+mask = df.aref_tar & ~df.tdr_overall & ~df.pca
 res = df[mask]
 
 # paired barplot, one line per site, active / passive change in noise correlation

@@ -6,6 +6,7 @@ In active / passive.
 define TDR over all stims? Or on pairwise basis? Both? Use PC-space too?
 """
 from settings import DIR
+import popDprime.deflate_helper as dh
 from nems_lbhb.baphy_experiment import BAPHYExperiment
 from nems_lbhb.baphy import parse_cellid
 from charlieTools.ptd_ms.utils import which_rawids
@@ -18,6 +19,7 @@ from charlieTools.dim_reduction import TDR
 import nems_lbhb.tin_helpers as thelp
 from sklearn.decomposition import PCA
 import nems.db as nd
+import pickle
 from itertools import combinations
 import os
 import pandas as pd
@@ -45,9 +47,20 @@ recache = False
 # state-space projection options
 zscore = False
 
-# regress out first order pupil?
-regress_pupil = False
-regress_task = False
+regress_pupil = False # regress out first order pupil?
+regress_task = False  # regress out first order task?
+deflate = True        # deflate response matrix (before TDR/PCA) by subtracting out noise corr. dim.
+
+if deflate:
+    yesno = input("Are drsc_axes.pickle results up-to-data?? (y/n)")
+else:
+    yesno='y'
+if yesno=='y':
+    pass
+elif yesno=='n':
+    raise ValueError("If wanting to deflate out noise corr. effects, first update LV results by running and/or updating cache_delta_rsc_axis.py!")
+else:
+    raise ValueError("Unknown response. Respond with y/n")
 
 # plot ref
 plot_ref = False
@@ -55,6 +68,11 @@ if plot_ref:
     fext = '_withREF'
 else:
     fext = ''
+if deflate:
+    fext += '_deflate'
+    resExt = '_deflate'
+else:
+    resExt = ''
 
 # extract evoked periods before lick only
 dec_window = {
@@ -113,6 +131,17 @@ for batch in batches:
             rec = preproc.regress_state(rec, state_sigs=['pupil'])
         elif regress_task:
             rec = preproc.regress_state(rec, state_sigs=['behavior'])
+        
+        if deflate:
+            lv = pickle.load(open(DIR + '/results/drsc_axes.pickle', "rb"))
+            def_axis = lv[site]['tarOnly']['evecs'][:, [0]]
+            # brute force remove all information on delta noise correlation axis from the response
+        #    resp = rec['resp']._data
+        #    lv = pickle.load(open(DIR + '/results/drsc_axes.pickle', "rb"))
+        #    def_axis = lv[site]['tarOnly']['evecs'][:, [0]]
+        #    projection = (resp.T.dot(def_axis) @ def_axis.T).T
+        #    resp = resp - projection
+        #    rec['resp'] = rec['resp']._modified_copy(resp)
 
         ra = rec.copy()
         ra = ra.create_mask(True)
@@ -245,6 +274,8 @@ for batch in batches:
                 for i, t in enumerate(ref_stim):
                     # ================================ TDR ==========================================
                     r1 = rec['resp'].extract_epoch(t, mask=ra['mask'])[:, :, start:end].mean(axis=-1)
+                    if deflate:
+                        r1 = dh.deflate_noise(r1, def_axis)
                     r1 = (r1 - m) / sd
                     r1 = r1.dot(all_tdr_weights.T).T
                     ax[0, 0].set_title('Active')
@@ -253,6 +284,8 @@ for batch in batches:
                     ax[0, 0].plot(el[0], el[1], color=BwG(i), alpha=0.8, label=ref_str[i].split('STIM_')[1], lw=2)
 
                     r1 = rec['resp'].extract_epoch(t, mask=rp['mask'])[:, :, start:end].mean(axis=-1)
+                    if deflate:
+                        r1 = dh.deflate_noise(r1, def_axis)
                     r1 = (r1 - m) / sd
                     r1 = r1.dot(all_tdr_weights.T).T
                     ax[0, 1].set_title('Passive')
@@ -262,6 +295,8 @@ for batch in batches:
 
                     # =============================== PCA ========================================
                     r1 = rec['resp'].extract_epoch(t, mask=ra['mask'])[:, :, start:end].mean(axis=-1)
+                    if deflate:
+                        r1 = dh.deflate_noise(r1, def_axis)
                     r1 = (r1 - m) / sd
                     r1 = r1.dot(pc_axes.T).T
                     ax[1, 0].set_title('Active')
@@ -270,6 +305,8 @@ for batch in batches:
                     ax[1, 0].plot(el[0], el[1], color=BwG(i), alpha=0.8, lw=2)
 
                     r1 = rec['resp'].extract_epoch(t, mask=rp['mask'])[:, :, start:end].mean(axis=-1)
+                    if deflate:
+                        r1 = dh.deflate_noise(r1, def_axis)
                     r1 = (r1 - m) / sd
                     r1 = r1.dot(pc_axes.T).T
                     ax[1, 1].set_title('Passive')
@@ -282,6 +319,8 @@ for batch in batches:
             for i, (t, ts) in enumerate(zip(catch + targets, catch_str+targets_str)):
                 # ================================ TDR ==========================================
                 r1 = rec['resp'].extract_epoch(t, mask=ra['mask'])[:, :, start:end].mean(axis=-1)
+                if deflate:
+                        r1 = dh.deflate_noise(r1, def_axis)
                 r1 = (r1 - m) / sd
                 r1 = r1.dot(all_tdr_weights.T).T
                 ax[0, 0].set_title('Active')
@@ -290,6 +329,8 @@ for batch in batches:
                 ax[0, 0].plot(el[0], el[1], color=gR(i), label=ts, lw=2)
 
                 r1 = rec['resp'].extract_epoch(t, mask=rp['mask'])[:, :, start:end].mean(axis=-1)
+                if deflate:
+                        r1 = dh.deflate_noise(r1, def_axis)
                 r1 = (r1 - m) / sd
                 r1 = r1.dot(all_tdr_weights.T).T
                 ax[0, 1].set_title('Passive')
@@ -299,6 +340,8 @@ for batch in batches:
 
                 # =============================== PCA ========================================
                 r1 = rec['resp'].extract_epoch(t, mask=ra['mask'])[:, :, start:end].mean(axis=-1)
+                if deflate:
+                        r1 = dh.deflate_noise(r1, def_axis)
                 r1 = (r1 - m) / sd
                 r1 = r1.dot(pc_axes.T).T
                 ax[1, 0].set_title('Active')
@@ -307,6 +350,8 @@ for batch in batches:
                 ax[1, 0].plot(el[0], el[1], color=gR(i), label=ts, lw=2)
 
                 r1 = rec['resp'].extract_epoch(t, mask=rp['mask'])[:, :, start:end].mean(axis=-1)
+                if deflate:
+                        r1 = dh.deflate_noise(r1, def_axis)
                 r1 = (r1 - m) / sd
                 r1 = r1.dot(pc_axes.T).T
                 ax[1, 1].set_title('Passive')
@@ -365,6 +410,8 @@ for batch in batches:
                     f.savefig(fpath + f'{site}{fext}_pr.pdf')
                 else:
                     f.savefig(fpath + f'{site}{fext}.pdf')
+            
+            plt.close('all')
 
             # get behavior performance for this site
             behavior_performance = manager.get_behavior_performance(**options)
@@ -431,7 +478,11 @@ for batch in batches:
 
                 # ================================= active data ======================================
                 r1 = rec['resp'].extract_epoch(pair[0], mask=ra['mask'])[:, :, start:end].mean(axis=-1)
+                if deflate:
+                        r1 = dh.deflate_noise(r1, def_axis)
                 r2 = rec['resp'].extract_epoch(pair[1], mask=ra['mask'])[:, :, start:end].mean(axis=-1)
+                if deflate:
+                        r2 = dh.deflate_noise(r2, def_axis)
                 r1 = (r1 - m) / sd
                 r2 = (r2 - m) / sd
 
@@ -472,8 +523,11 @@ for batch in batches:
             
                 # ================================= passive data ======================================
                 r1 = rec['resp'].extract_epoch(pair[0], mask=rp['mask'])[:, :, start:end].mean(axis=-1)
+                if deflate:
+                    r1 = dh.deflate_noise(r1, def_axis)
                 r2 = rec['resp'].extract_epoch(pair[1], mask=rp['mask'])[:, :, start:end].mean(axis=-1)
-
+                if deflate:
+                    r2 = dh.deflate_noise(r2, def_axis)
                 # using overall tdr
                 dp, wopt, evals, evecs, evec_sim, dU = compute_dprime(r1.dot(all_tdr_weights.T).T, r2.dot(all_tdr_weights.T).T)
                 dp_diag, _, _, _, _, _ = compute_dprime(r1.dot(all_tdr_weights.T).T, r2.dot(all_tdr_weights.T).T, diag=True)
@@ -550,20 +604,19 @@ df = df.astype(dtypes_new)
 
 if zscore:
     if regress_pupil & regress_task:
-        df.to_pickle(res_path + 'res_zscore_pr_br.pickle')
+        df.to_pickle(res_path + f'res{resExt}_zscore_pr_br.pickle')
     elif regress_task:
-        df.to_pickle(res_path + 'res_zscore_br.pickle')
+        df.to_pickle(res_path + f'res{resExt}_zscore_br.pickle')
     elif regress_pupil:
-        df.to_pickle(res_path + 'res_zscore_pr.pickle')
+        df.to_pickle(res_path + f'res{resExt}_zscore_pr.pickle')
     else:
-        df.to_pickle(res_path + 'res_zscore.pickle')
+        df.to_pickle(res_path + f'res{resExt}_zscore.pickle')
 else:
     if regress_pupil & regress_task:
-        df.to_pickle(res_path + 'res_pr_br.pickle')
+        df.to_pickle(res_path + f'res{resExt}_pr_br.pickle')
     elif regress_task:
-        df.to_pickle(res_path + 'res_br.pickle')
+        df.to_pickle(res_path + f'res{resExt}_br.pickle')
     elif regress_pupil:
-        df.to_pickle(res_path + 'res_pr.pickle')
+        df.to_pickle(res_path + f'res{resExt}_pr.pickle')
     else:
-        df.to_pickle(res_path + 'res.pickle')
-plt.close('all')
+        df.to_pickle(res_path + f'res{resExt}.pickle')

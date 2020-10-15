@@ -1,7 +1,7 @@
 """
 For each target, time bin, cache noise correlations and behavioral DI
 """
-
+from settings import DIR
 from nems_lbhb.baphy_experiment import BAPHYExperiment
 import charlieTools.noise_correlations as nc
 import charlieTools.preprocessing as preproc
@@ -11,8 +11,9 @@ import nems.db as nd
 import pandas as pd
 import numpy as np
 from charlieTools.ptd_ms.utils import which_rawids
+import pickle
 
-res_path = '/auto/users/hellerc/code/projects/APAN2020/results/'
+res_path = DIR + 'results/'
 
 batches = [302, 307, 324, 325]
 Aoptions = dict.fromkeys(batches)
@@ -51,8 +52,21 @@ twin[324] = twin[302]
 twin[325] = twin[302]
 
 recache = False
-regress_pupil = True  # regress out first order pupil
-regress_task = True
+regress_pupil = False  # regress out first order pupil
+regress_task = False
+deflate = True
+
+if deflate:
+    yesno = input("Are drsc_axes.pickle results up-to-data?? (y/n)")
+    resExt = '_deflate'
+else:
+    resExt = ''
+if yesno=='y':
+    pass
+elif yesno=='n':
+    raise ValueError("If wanting to deflate out noise corr. effects, first update LV results by running and/or updating cache_delta_rsc_axis.py!")
+else:
+    raise ValueError("Unknown response. Respond with y/n")
 
 dfs = []
 for batch in batches:
@@ -90,6 +104,15 @@ for batch in batches:
             rec = preproc.regress_state(rec, state_sigs=['pupil'])
         elif regress_task:
             rec = preproc.regress_state(rec, state_sigs=['behavior'])
+
+        if deflate:
+            # brute force remove all information on delta noise correlation axis from the response
+            resp = rec['resp']._data
+            lv = pickle.load(open(DIR + '/results/drsc_axes.pickle', "rb"))
+            def_axis = lv[site]['tarOnly']['evecs'][:, [0]]
+            projection = (resp.T.dot(def_axis) @ def_axis.T).T
+            resp = resp - projection
+            rec['resp'] = rec['resp']._modified_copy(resp)
 
         ra = rec.copy()
         ra = ra.create_mask(True)
@@ -212,10 +235,10 @@ dfall = dfall.astype(dtypes_new)
 
 # save results
 if regress_pupil & regress_task:
-    dfall.to_pickle(res_path + 'rsc_df_pr_br.pickle')
+    dfall.to_pickle(res_path + f'rsc_df{resExt}_pr_br.pickle')
 elif regress_task:
-    dfall.to_pickle(res_path + 'rsc_df_br.pickle')
+    dfall.to_pickle(res_path + f'rsc_df{resExt}_br.pickle')
 elif regress_pupil:
-    dfall.to_pickle(res_path + 'rsc_df_pr.pickle')
+    dfall.to_pickle(res_path + f'rsc_df{resExt}_pr.pickle')
 else:
-    dfall.to_pickle(res_path + 'rsc_df.pickle')
+    dfall.to_pickle(res_path + f'rsc_df{resExt}.pickle')
