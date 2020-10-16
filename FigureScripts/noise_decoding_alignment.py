@@ -42,7 +42,7 @@ df['lv_cos_dU'] = cosdU
 f, ax = plt.subplots(1, 2, figsize=(10, 5), sharey=True)
 
 # batch 324 only (where we have a "real" catch along SNR axis)
-mask = df.cat_tar & (df.batch.isin([324, 325])) & df.tdr_overall & ~df.active
+mask = df.cat_tar & (df.batch.isin([324])) & ~df.tdr_overall & ~df.active & ~df.pca & df.tdr_fixedNoise
 grp = df[mask].groupby(by=['snr1', 'site']).mean()
 snrsAll = grp.index.get_level_values('snr1').unique()
 for s in grp.index.get_level_values('site').unique():
@@ -50,7 +50,7 @@ for s in grp.index.get_level_values('site').unique():
     snridx = [True if s in snrs else False for s in snrsAll]
     x = np.arange(0, len(snrsAll))[snridx]
     cos = grp.loc[pd.IndexSlice[:, s], :]['lv_cos_dU']
-    ax[0].plot(x, cos, color='grey')
+    ax[0].plot(x, cos, color='lightgrey')
 ax[0].plot(np.arange(0, len(snrsAll)), df[mask].groupby(by=['snr1']).mean()['lv_cos_dU'], 'o-', lw=2,
             color='k')
 ax[0].set_xticks(np.arange(0, len(snrsAll)))
@@ -60,7 +60,7 @@ ax[0].set_ylabel('Noise vs. Signal alignment')
 ax[0].set_title('Narrowband noise')
 
 # batch 307 (broadband noise)
-mask = df.aref_tar & (df.batch==307) & df.tdr_overall & ~df.active
+mask = df.aref_tar & (df.batch==307) & ~df.tdr_overall & ~df.active & ~df.pca & df.tdr_fixedNoise
 grp = df[mask].groupby(by=['snr2', 'site']).mean()
 snrsAll = grp.index.get_level_values('snr2').unique()
 for s in grp.index.get_level_values('site').unique():
@@ -81,7 +81,7 @@ f.tight_layout()
 
 # break down the 324 / 325? data more: by frequency dim AND SNR dim.
 
-mask = df.ref_tar & df.batch.isin([324]) & ~df.tdr_overall & ~df.active
+mask = df.ref_tar & df.batch.isin([324]) & ~df.tdr_overall & ~df.active & ~df.pca & df.tdr_fixedNoise
 f, ax = plt.subplots(1, 1, figsize=(5, 5))
 for snr in df[mask].snr2.unique():
     grp = df[mask & (df.snr2==snr)].groupby(by='fdiff').mean()
@@ -98,5 +98,30 @@ ax.set_xlabel('Octave separation')
 
 f.tight_layout()
 
+
+
+
+# 324/325 decoding changes vs. SNR and decoding changes vs. noise alignment
+amask = df.aref_tar & (df.batch.isin([302, 324, 325])) & ~df.tdr_overall & ~df.pca & df.active & df.tdr_fixedNoise
+pmask = df.aref_tar & (df.batch.isin([302, 324, 325])) & ~df.tdr_overall & ~df.pca & ~df.active & df.tdr_fixedNoise
+grpa = df[amask].groupby(by=['snr2', 'site']).mean()
+grpp = df[pmask].groupby(by=['snr2', 'site']).mean()
+dp_metric = 'dp_opt'
+
+f, ax = plt.subplots(1, 1, figsize=(5, 5))
+
+for snr in grpa.index.get_level_values('snr2').unique():
+    a = grpa.loc[pd.IndexSlice[snr, :], :]
+    p = grpp.loc[pd.IndexSlice[snr, :], :]
+    ddp = (a[dp_metric] - p[dp_metric]) / (a[dp_metric] + p[dp_metric])
+    nvs = grpp.loc[pd.IndexSlice[snr, :], :]['lv_cos_dU']
+
+    ax.scatter(nvs, ddp, s=50, edgecolor='white', label=f"{snr} dB SNR")
+
+ax.legend()
+ax.set_xlabel('Noise vs. Signal Alignment')
+ax.set_ylabel(r"$\Delta d'^2$")
+
+f.tight_layout()
 
 plt.show()
