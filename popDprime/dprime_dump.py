@@ -43,6 +43,7 @@ Aoptions[307] = {'resp': True, 'pupil': True, 'rasterfs': 20}
 Aoptions[324] = {'resp': True, 'pupil': True, 'rasterfs': 10}
 Aoptions[325] = {'resp': True, 'pupil': True, 'rasterfs': 10}
 recache = False
+plot_ref = True
 
 # state-space projection options
 zscore = False
@@ -61,7 +62,6 @@ else:
     raise ValueError("Unknown response. Respond with y/n")
 
 # plot ref
-plot_ref = False
 if plot_ref:
     fext = '_withREF'
 else:
