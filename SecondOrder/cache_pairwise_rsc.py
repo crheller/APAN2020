@@ -12,6 +12,7 @@ import pandas as pd
 import numpy as np
 from charlieTools.ptd_ms.utils import which_rawids
 import pickle
+import copy
 
 res_path = DIR + 'results/'
 
@@ -54,8 +55,9 @@ twin[325] = twin[302]
 recache = False
 regress_pupil = False  # regress out first order pupil
 regress_task = False
-deflate = True
+deflate = False
 
+yesno = 'y'
 if deflate:
     yesno = input("Are drsc_axes.pickle results up-to-data?? (y/n)")
     resExt = '_deflate'
@@ -92,10 +94,11 @@ for batch in batches:
             rec['resp'] = rec['resp'].extract_channels(c)
 
         behavior_performance = manager.get_behavior_performance(**options)
-        options['keep_following_incorrect_trial'] = True
-        options['keep_cue_trials'] = True
-        options['keep_early_trials'] = True
-        behavior_performance_all = manager.get_behavior_performance(**options)
+        allop = copy.deepcopy(options)
+        allop['keep_following_incorrect_trial'] = True
+        allop['keep_cue_trials'] = True
+        allop['keep_early_trials'] = True
+        behavior_performance_all = manager.get_behavior_performance(**allop)
 
         # regress out first order pupil
         if regress_pupil & regress_task:
@@ -117,11 +120,11 @@ for batch in batches:
         ra = rec.copy()
         ra = ra.create_mask(True)
         if batch in [324, 325]:
-            ra = ra.and_mask(['HIT_TRIAL', 'CORRECT_REJECT_TRIAL'])
+            ra = ra.and_mask(['HIT_TRIAL', 'CORRECT_REJECT_TRIAL', 'INCORRECT_HIT_TRIAL', 'MISS_TRIAL'])
         elif batch == 302:
-            ra = ra.and_mask(['HIT_TRIAL', 'CORRECT_REJECT_TRIAL', 'INCORRECT_HIT_TRIAL'])
+            ra = ra.and_mask(['HIT_TRIAL', 'CORRECT_REJECT_TRIAL', 'INCORRECT_HIT_TRIAL', 'MISS_TRIAL'])
         elif batch == 307:
-            ra = ra.and_mask(['HIT_TRIAL'])
+            ra = ra.and_mask(['HIT_TRIAL', 'MISS_TRIAL'])
 
         rp = rec.copy()
         rp = rp.create_mask(True)

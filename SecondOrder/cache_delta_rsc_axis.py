@@ -8,6 +8,7 @@ For each, plot:
     eigendecomposition of difference, along with noise floor
     similary matrix of the first eigenvector for each method
 """
+from settings import DIR
 from nems_lbhb.baphy_experiment import BAPHYExperiment
 from nems_lbhb.baphy import parse_cellid
 from charlieTools.ptd_ms.utils import which_rawids
@@ -31,8 +32,8 @@ import matplotlib as mpl
 mpl.rcParams['axes.spines.right'] = False
 mpl.rcParams['axes.spines.top'] = False
 
-figpath = '/home/charlie/Desktop/lbhb/code/projects/APAN2020/results/figures/Delta_rsc_axis/'
-results = '/home/charlie/Desktop/lbhb/code/projects/APAN2020/results/drsc_axes.pickle'
+figpath = DIR + 'results/figures/Delta_rsc_axis/'
+results =DIR + 'results/drsc_axes.pickle'
 savefig = True
 
 batches = [302, 307, 324, 325]
@@ -84,11 +85,11 @@ for batch in batches:
         ra = rec.copy()
         ra = ra.create_mask(True)
         if batch in [324, 325]:
-            ra = ra.and_mask(['HIT_TRIAL', 'CORRECT_REJECT_TRIAL'])
+            ra = rec.and_mask(['HIT_TRIAL', 'CORRECT_REJECT_TRIAL', 'MISS_TRIAL', 'INCORRECT_HIT_TRIAL'])
         elif batch == 302:
-            ra = ra.and_mask(['HIT_TRIAL', 'CORRECT_REJECT_TRIAL', 'INCORRECT_HIT_TRIAL'])
+            ra = ra.and_mask(['HIT_TRIAL', 'CORRECT_REJECT_TRIAL', 'INCORRECT_HIT_TRIAL', 'MISS_TRIAL'])
         elif batch == 307:
-            ra = ra.and_mask(['HIT_TRIAL'])
+            ra = ra.and_mask(['HIT_TRIAL', 'MISS_TRIAL'])
 
         rp = rec.copy()
         rp = rp.create_mask(True)

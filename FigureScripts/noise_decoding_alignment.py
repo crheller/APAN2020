@@ -42,7 +42,7 @@ df['lv_cos_dU'] = cosdU
 f, ax = plt.subplots(1, 2, figsize=(10, 5), sharey=True)
 
 # batch 324 only (where we have a "real" catch along SNR axis)
-mask = df.cat_tar & (df.batch.isin([324])) & ~df.tdr_overall & ~df.active & ~df.pca & df.tdr_fixedNoise
+mask = df.cat_tar & (df.batch.isin([324, 325])) & df.tdr_overall & ~df.active & ~df.pca & ~df.tdr_fixedNoise
 grp = df[mask].groupby(by=['snr1', 'site']).mean()
 snrsAll = grp.index.get_level_values('snr1').unique()
 for s in grp.index.get_level_values('site').unique():
@@ -102,11 +102,11 @@ f.tight_layout()
 
 
 # 324/325 decoding changes vs. SNR and decoding changes vs. noise alignment
-amask = df.aref_tar & (df.batch.isin([302, 324, 325])) & ~df.tdr_overall & ~df.pca & df.active & df.tdr_fixedNoise
-pmask = df.aref_tar & (df.batch.isin([302, 324, 325])) & ~df.tdr_overall & ~df.pca & ~df.active & df.tdr_fixedNoise
+amask = df.aref_tar & (df.batch.isin([302, 307, 324, 325])) & ~df.tdr_overall & ~df.pca & df.active & df.tdr_fixedNoise
+pmask = df.aref_tar & (df.batch.isin([302, 307, 324, 325])) & ~df.tdr_overall & ~df.pca & ~df.active & df.tdr_fixedNoise
 grpa = df[amask].groupby(by=['snr2', 'site']).mean()
 grpp = df[pmask].groupby(by=['snr2', 'site']).mean()
-dp_metric = 'dp_opt'
+dp_metric = 'dp_diag'
 
 f, ax = plt.subplots(1, 1, figsize=(5, 5))
 

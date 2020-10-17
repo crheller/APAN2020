@@ -5,6 +5,7 @@ Main Q: is delta variance on PC_1 correlated with change in mean pairwise rsc? T
     Idea is for this to be an early figure that says, "forget pairwise correlations, think about this 
     as a low D change in variance in state space"
 """
+from settings import DIR
 import scipy.stats as ss
 import pickle
 import pandas as pd
@@ -15,11 +16,14 @@ import matplotlib as mpl
 mpl.rcParams['axes.spines.right'] = False
 mpl.rcParams['axes.spines.top'] = False
 
-rsc = pd.read_pickle('/auto/users/hellerc/code/projects/APAN2020/results/rsc_df.pickle')
-lv = pickle.load(open('/auto/users/hellerc/code/projects/APAN2020/results/drsc_axes.pickle', "rb" ))
+rsc = pd.read_pickle(DIR + 'results/rsc_df.pickle')
+lv = pickle.load(open(DIR + 'results/drsc_axes.pickle', "rb" ))
+
+rsc = rsc[rsc.batch.isin([324])]
 
 di_metric='DIref'
 sigcorr = False
+alpha = 0.05
  # time window used for lv estimation should match time bin uses for rsc calculation
 tbins = {
     302: '0.1_0.3',
@@ -33,7 +37,7 @@ x = []
 y = []
 beh = []
 sig = []
-for site in lv.keys():
+for site in rsc.site.unique():
     if rsc[rsc.site==site].batch.iloc[0]==307:
         tbin = tbins[307]
     elif rsc[rsc.site==site].batch.iloc[0]==302:
@@ -44,16 +48,16 @@ for site in lv.keys():
         tbin = tbins[325]
 
     if sigcorr:
-        sigmask = (rsc.pp < 0.05) | (rsc.pa < 0.05)
+        sigmask = (rsc.pp < alpha) | (rsc.pa < alpha)
         diff = (rsc[(rsc.site==site) & (rsc.tbin==tbin) & sigmask]['passive'] - rsc[(rsc.site==site) & (rsc.tbin==tbin) & sigmask]['active']).mean()
     else:
         diff = (rsc[(rsc.site==site) & (rsc.tbin==tbin)]['passive'] - rsc[(rsc.site==site) & (rsc.tbin==tbin)]['active']).mean()
-    if lv[site]['tarCat']['nSigDim'] >= 1:
+    if lv[site]['tarOnly']['nSigDim'] >= 1:
         sig.append(1)
     else:
         sig.append(0)
     x.append(diff)
-    lv_delta = lv[site]['tarCat']['evals'][0] / sum(abs(lv[site]['tarCat']['evals']))
+    lv_delta = (lv[site]['tarOnly']['evals'][0]**2) / sum(abs(lv[site]['tarOnly']['evals'])**2)
     y.append(lv_delta)
     rsc.at[(rsc.site==site) & (rsc.tbin==tbin), 'lv_delta'] = lv_delta
     mb = rsc[(rsc.site==site) & (rsc.tbin==tbin)].groupby('snr').mean()[di_metric]

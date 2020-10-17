@@ -51,14 +51,12 @@ regress_pupil = False # regress out first order pupil?
 regress_task = False  # regress out first order task?
 deflate = False        # deflate response matrix (before TDR/PCA) by subtracting out noise corr. dim.
 
-if deflate:
-    yesno = input("Are drsc_axes.pickle results up-to-data?? (y/n)")
-else:
-    yesno='y'
+yesno = 'n'
+yesno = input("Are drsc_axes.pickle results up-to-data? We need these for the tdr space definition. (y/n)")
 if yesno=='y':
     pass
 elif yesno=='n':
-    raise ValueError("If wanting to deflate out noise corr. effects, first update LV results by running and/or updating cache_delta_rsc_axis.py!")
+    raise ValueError("Update noise corr. axis definitions using cache_delta_rsc_axis.py!")
 else:
     raise ValueError("Unknown response. Respond with y/n")
 
@@ -114,14 +112,14 @@ for batch in batches:
 
         # mask appropriate trials
         if batch in [324, 325]:
-            active_mask = ['HIT_TRIAL', 'CORRECT_REJECT_TRIAL']
-            rec = rec.and_mask(['PASSIVE_EXPERIMENT', 'HIT_TRIAL', 'CORRECT_REJECT_TRIAL'])
+            active_mask = ['HIT_TRIAL', 'CORRECT_REJECT_TRIAL', 'MISS_TRIAL', 'INCORRECT_HIT_TRIAL']
+            rec = rec.and_mask(['PASSIVE_EXPERIMENT', 'HIT_TRIAL', 'CORRECT_REJECT_TRIAL', 'MISS_TRIAL', 'INCORRECT_HIT_TRIAL'])
         elif batch == 307:
-            active_mask = ['HIT_TRIAL']
-            rec = rec.and_mask(['PASSIVE_EXPERIMENT', 'HIT_TRIAL'])
+            active_mask = ['HIT_TRIAL', 'MISS_TRIAL']
+            rec = rec.and_mask(['PASSIVE_EXPERIMENT', 'HIT_TRIAL', 'MISS_TRIAL'])
         elif batch == 302:
-            active_mask = ['HIT_TRIAL', 'CORRECT_REJECT_TRIAL', 'INCORRECT_HIT_TRIAL']
-            rec = rec.and_mask(['PASSIVE_EXPERIMENT', 'HIT_TRIAL', 'CORRECT_REJECT_TRIAL', 'INCORRECT_HIT_TRIAL'])
+            active_mask = ['HIT_TRIAL', 'CORRECT_REJECT_TRIAL', 'INCORRECT_HIT_TRIAL', 'MISS_TRIAL']
+            rec = rec.and_mask(['PASSIVE_EXPERIMENT', 'HIT_TRIAL', 'CORRECT_REJECT_TRIAL', 'INCORRECT_HIT_TRIAL', 'MISS_TRIAL'])
         
         rec = rec.apply_mask(reset_epochs=True)
 
@@ -248,7 +246,11 @@ for batch in batches:
                 sd = 1
             tar = (tar - m) / sd
             cat = (cat - m) / sd
-            tdr = TDR()
+
+            # use predefined noise axis based only on target space for visualizations in TDR space
+            lv = pickle.load(open(DIR + '/results/drsc_axes.pickle', "rb"))
+            def_axis = lv[site]['tarOnly']['evecs'][:, [0]]
+            tdr = TDR(tdr2_init=def_axis.T)
             tdr.fit(tar, cat)
             all_tdr_weights = tdr.weights
 
