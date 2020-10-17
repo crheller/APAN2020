@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 mpl.rcParams['axes.spines.right'] = False
 mpl.rcParams['axes.spines.top'] = False
-
+    
 df = pd.read_pickle(DIR+"results/res_pr.pickle")
 df['dp_opt_sqrt'] = np.sqrt(df['dp_opt'])
 df['dp_diag_sqrt'] = np.sqrt(df['dp_diag'])
