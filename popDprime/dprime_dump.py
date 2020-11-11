@@ -43,13 +43,12 @@ Aoptions[307] = {'resp': True, 'pupil': True, 'rasterfs': 20}
 Aoptions[324] = {'resp': True, 'pupil': True, 'rasterfs': 10}
 Aoptions[325] = {'resp': True, 'pupil': True, 'rasterfs': 10}
 recache = False
-plot_ref = True
 
 # state-space projection options
 zscore = False
 
-regress_pupil = False # regress out first order pupil?
-regress_task = False  # regress out first order task?
+regress_pupil = True # regress out first order pupil?
+regress_task = True  # regress out first order task?
 deflate = False        # deflate response matrix (before TDR/PCA) by subtracting out noise corr. dim.
 
 yesno = 'n'
@@ -62,6 +61,7 @@ else:
     raise ValueError("Unknown response. Respond with y/n")
 
 # plot ref
+plot_ref = False
 if plot_ref:
     fext = '_withREF'
 else:

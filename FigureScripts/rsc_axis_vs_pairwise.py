@@ -5,6 +5,7 @@ Main Q: is delta variance on PC_1 correlated with change in mean pairwise rsc? T
     Idea is for this to be an early figure that says, "forget pairwise correlations, think about this 
     as a low D change in variance in state space"
 """
+import helpers
 from settings import DIR
 import scipy.stats as ss
 import pickle
@@ -30,7 +31,7 @@ tbins = {
     325: '0.1_0.3' 
 }
 # correlation between eval1 and delta pairswise noise correlation across sites
-f, ax = plt.subplots(1, 3, figsize=(12, 4))
+f, ax = plt.subplots(1, 1, figsize=(4, 4))
 x = []
 y = []
 beh = []
@@ -61,34 +62,20 @@ for site in rsc.site.unique():
     mb = rsc[(rsc.site==site) & (rsc.tbin==tbin)].groupby('snr').mean()[di_metric]
     beh.append(mb[mb!=np.inf].mean())
 
-ax[0].scatter(x, y, s=50, edgecolor='k', color='tab:blue')
-#ax[0].scatter(np.array(x)[np.array(sig)==1], 
-#                np.array(y)[np.array(sig)==1], s=50, edgecolor='k', color='tab:orange')
-ax[0].axhline(0, linestyle='--', color='k')
-ax[0].axvline(0, linestyle='--', color='k')
-ax[0].set_xlabel(r"$\Delta r_{sc}$")
-ax[0].set_ylabel(r"$\Delta$ variance"+"\non noise corr. axis")
-r, p = ss.pearsonr(x, y)
-ax[0].set_title(f"r: {round(r, 3)}, pval: {round(p, 3)}")
+ax.scatter(x, y, s=50, edgecolor='white', color='k')
+ax.axhline(0, linestyle='--', color='k')
+ax.axvline(0, linestyle='--', color='k')
+ax.set_xlabel(r"$\Delta r_{sc}$")
+ax.set_ylabel(r"$\Delta$ variance"+"\non noise correlation axis")
 
-# compare change in latent variable variance / noise correlations to behavior
-
-ax[1].scatter(beh, x, s=50, edgecolor='k', color='tab:blue')
-ax[1].axhline(0, linestyle='--', color='k')
-ax[1].axvline(0.5, linestyle='--', color='k')
-ax[1].set_xlabel(r"Behavior performance")
-ax[1].set_ylabel(r"$\Delta r_{sc}$")
-r, p = ss.pearsonr(beh, x)
-ax[1].set_title(f"r: {round(r, 3)}, pval: {round(p, 3)}")
-
-ax[2].scatter(beh, y, s=50, edgecolor='k', color='tab:blue')
-ax[2].axhline(0, linestyle='--', color='k')
-ax[2].axvline(0.5, linestyle='--', color='k')
-ax[2].set_xlabel(r"Behavior performance")
-ax[2].set_ylabel(r"$\Delta$ variance"+"\non noise corr. axis")
-r, p = ss.pearsonr(beh, y)
-ax[2].set_title(f"r: {round(r, 3)}, pval: {round(p, 3)}")
+X = pd.DataFrame(data=x, columns=['rsc'])
+X = sm.add_constant(X)
+y = pd.Series(data=y)
+r = helpers.fit_OLS_model(X, y, replace=False, nboot=100, njacks=20)
+ax.set_title(r"$R^2: %s, p < 0.05$" % round(r['r2']['rsc'], 3))
 
 f.tight_layout()
+
+f.savefig(DIR + 'pyfigures/rsc_axis_vs_pairwise.svg')
 
 plt.show()
