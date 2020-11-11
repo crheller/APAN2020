@@ -108,27 +108,23 @@ for batch in batches:
         axes['tarCat'] = np.concatenate((tc_axis[np.newaxis, :], pca.components_), axis=0)
 
         nPCs = min([8, rec['resp'].shape[0]])
+
+
         # ============================= CHOICE DECODING =========================
         # for each stimulus, decode choice using the above sets of axes. Use leave-one-out
         # decoding and report the proportion correct
+        
+        # CORRECT REJECT VS. FA DECODING
         d = np.concatenate([(rcat['resp'].extract_epoch(c, mask=rcat['mask'])[:, :, tstart:tend].mean(axis=-1) - \
                             rcat['resp'].extract_epoch(c, mask=rcat['mask'])[:, :, tstart:tend].mean(axis=(0, -1))) for c in catches], 
                             axis=0)
         choice = np.concatenate([rcat['cat_choice'].extract_epoch(t, mask=rcat['mask'])[:, 0, 0] for t in catches])
         for nAx in range(nPCs): 
-            cat_correct = np.zeros(d.shape[0])
-            tar_correct = np.zeros(d.shape[0])
-            pca_correct = np.zeros(d.shape[0])
-            delt_correct = np.zeros(d.shape[0])
-            tc_correct = np.zeros(d.shape[0])
-            cat_mask = np.zeros(d.shape[0]).astype(bool)
-            tar_mask = np.zeros(d.shape[0]).astype(bool)
-            pca_mask = np.zeros(d.shape[0]).astype(bool)
-            delt_mask = np.zeros(d.shape[0]).astype(bool)
-            tc_mask = np.zeros(d.shape[0]).astype(bool)
+            projections = {k: [] for k in axes.keys()}
+            masks = {k: [] for k in axes.keys()}
             for i in range(d.shape[0]):
                 idx = np.array(list(set(range(d.shape[0])).difference(set([i]))))
-                for ax_str in ['catch', 'target', 'pca', 'delta', 'tarCat']:
+                for ax_str in axes.keys():
                     _d = d[idx]
                     _choice = choice[idx]
                     # project into space
@@ -141,43 +137,20 @@ for batch in batches:
                         # project held out point onto axis
                         val = d[[i], :].dot(axes[ax_str][range(0, nAx+1), :].T).dot(wopt / np.linalg.norm(wopt))[0][0]
                     else:
-                        val = d[[i], :].dot(axes[ax_str][range(0, nAx+1), :].T)
-                    # save projections            
-                    if ax_str=='catch':
-                        cat_correct[i] = val
-                        cat_mask[i] = choice[i]
-                    elif ax_str=='target': 
-                        tar_correct[i] = val
-                        tar_mask[i] = choice[i]
-                    elif ax_str=='pca':
-                        pca_correct[i] = val
-                        pca_mask[i] = choice[i]
-                    elif ax_str=='delta':
-                        delt_correct[i] = val
-                        delt_mask[i] = choice[i]
-                    elif ax_str=='tarCat':
-                        tc_correct[i] = val
-                        tc_mask[i] = choice[i]
+                        val = d[[i], :].dot(axes[ax_str][range(0, nAx+1), :].T)[0][0]
+                    # save projections  
+                    projections[ax_str].append(val)
+                    masks[ax_str].append(choice[i])          
             
             # compute dprime for each 
-            cdp, _, _, _, _, _ = compute_dprime(cat_correct[cat_mask][np.newaxis, :], cat_correct[~cat_mask][np.newaxis, :])
-            tdp, _, _, _, _, _ = compute_dprime(tar_correct[tar_mask][np.newaxis, :], tar_correct[~tar_mask][np.newaxis, :])
-            pdp, _, _, _, _, _ = compute_dprime(pca_correct[pca_mask][np.newaxis, :], pca_correct[~pca_mask][np.newaxis, :])
-            ddp, _, _, _, _, _ = compute_dprime(delt_correct[delt_mask][np.newaxis, :], delt_correct[~delt_mask][np.newaxis, :])
-            tcdp, _, _, _, _, _ = compute_dprime(tc_correct[tc_mask][np.newaxis, :], tc_correct[~tc_mask][np.newaxis, :])
+            for k in projections.keys():
+                a = np.array(projections[k])[np.array(masks[k])][np.newaxis, :]
+                b = np.array(projections[k])[np.array(masks[k])==False][np.newaxis, :]
+                dp, _, _, _, _, _ = compute_dprime(a, b)
+                #chance_dp, pvalue = compute_dprime_noiseFloor(a, b)
+                choice_decoder = choice_decoder.append(pd.DataFrame(index=['sound', 'dprime', 'nDim', 'axes', 'soundCategory', 'site', 'batch'],
+                                    data=['catch', dp** 0.5, nAx, k, 'catch', site, batch]).T)
 
-            chance_dp, pvalue = compute_dprime_noiseFloor(pca_correct[pca_mask][np.newaxis, :], pca_correct[~pca_mask][np.newaxis, :])
-
-            choice_decoder = choice_decoder.append(pd.DataFrame(index=['sound', 'dprime', 'nDim', 'axes', 'soundCategory', 'site', 'batch'],
-                                    data=['catch', cdp** 0.5, nAx, 'catch', 'catch', site, batch]).T)
-            choice_decoder = choice_decoder.append(pd.DataFrame(index=['sound', 'dprime', 'nDim', 'axes', 'soundCategory', 'site', 'batch'],
-                                    data=['catch', tdp** 0.5, nAx, 'target', 'catch', site, batch]).T)
-            choice_decoder = choice_decoder.append(pd.DataFrame(index=['sound', 'dprime', 'nDim', 'axes', 'soundCategory', 'site', 'batch'],
-                                    data=['catch', pdp** 0.5, nAx, 'pca', 'catch', site, batch]).T)
-            choice_decoder = choice_decoder.append(pd.DataFrame(index=['sound', 'dprime', 'nDim', 'axes', 'soundCategory', 'site', 'batch'],
-                                    data=['catch', ddp** 0.5, nAx, 'delta', 'catch', site, batch]).T)
-            choice_decoder = choice_decoder.append(pd.DataFrame(index=['sound', 'dprime', 'nDim', 'axes', 'soundCategory', 'site', 'batch'],
-                                    data=['catch', tcdp** 0.5, nAx, 'tarCat', 'catch', site, batch]).T)
 
         # HIT / MISS DECODING
         d = np.concatenate([(rtar['resp'].extract_epoch(t, mask=rtar['mask'])[:, :, tstart:tend].mean(axis=-1) - \
@@ -185,19 +158,11 @@ for batch in batches:
                             axis=0)
         choice = np.concatenate([rtar['tar_choice'].extract_epoch(t, mask=rtar['mask'])[:, 0, 0] for t in targets])
         for nAx in range(nPCs): 
-            cat_correct = np.zeros(d.shape[0])
-            tar_correct = np.zeros(d.shape[0])
-            pca_correct = np.zeros(d.shape[0])
-            delt_correct = np.zeros(d.shape[0])
-            tc_correct = np.zeros(d.shape[0])
-            cat_mask = np.zeros(d.shape[0]).astype(bool)
-            tar_mask = np.zeros(d.shape[0]).astype(bool)
-            pca_mask = np.zeros(d.shape[0]).astype(bool)
-            delt_mask = np.zeros(d.shape[0]).astype(bool)
-            tc_mask = np.zeros(d.shape[0]).astype(bool)
+            projections = {k: [] for k in axes.keys()}
+            masks = {k: [] for k in axes.keys()}
             for i in range(d.shape[0]):
                 idx = np.array(list(set(range(d.shape[0])).difference(set([i]))))
-                for ax_str in ['catch', 'target', 'pca', 'delta', 'tarCat']:
+                for ax_str in axes.keys():
                     _d = d[idx]
                     _choice = choice[idx]
                     # project into space
@@ -210,41 +175,19 @@ for batch in batches:
                         # project held out point onto axis
                         val = d[[i], :].dot(axes[ax_str][range(0, nAx+1), :].T).dot(wopt / np.linalg.norm(wopt))[0][0]
                     else:
-                        val = d[[i], :].dot(axes[ax_str][range(0, nAx+1), :].T)
-                    # save projections            
-                    if ax_str=='catch':
-                        cat_correct[i] = val
-                        cat_mask[i] = choice[i]
-                    elif ax_str=='target': 
-                        tar_correct[i] = val
-                        tar_mask[i] = choice[i]
-                    elif ax_str=='pca':
-                        pca_correct[i] = val
-                        pca_mask[i] = choice[i]
-                    elif ax_str=='delta':
-                        delt_correct[i] = val
-                        delt_mask[i] = choice[i]
-                    elif ax_str=='tarCat':
-                        tc_correct[i] = val
-                        tc_mask[i] = choice[i]
+                        val = d[[i], :].dot(axes[ax_str][range(0, nAx+1), :].T)[0][0]
+                    # save projections  
+                    projections[ax_str].append(val)
+                    masks[ax_str].append(choice[i])          
             
             # compute dprime for each 
-            cdp, _, _, _, _, _ = compute_dprime(cat_correct[cat_mask][np.newaxis, :], cat_correct[~cat_mask][np.newaxis, :])
-            tdp, _, _, _, _, _ = compute_dprime(tar_correct[tar_mask][np.newaxis, :], tar_correct[~tar_mask][np.newaxis, :])
-            pdp, _, _, _, _, _ = compute_dprime(pca_correct[pca_mask][np.newaxis, :], pca_correct[~pca_mask][np.newaxis, :])
-            ddp, _, _, _, _, _ = compute_dprime(delt_correct[delt_mask][np.newaxis, :], delt_correct[~delt_mask][np.newaxis, :])
-            tcdp, _, _, _, _, _ = compute_dprime(tc_correct[tc_mask][np.newaxis, :], tc_correct[~tc_mask][np.newaxis, :])
-            
-            choice_decoder = choice_decoder.append(pd.DataFrame(index=['sound', 'dprime', 'nDim', 'axes', 'soundCategory', 'site', 'batch'],
-                                    data=['target', cdp** 0.5, nAx, 'catch', 'target', site, batch]).T)
-            choice_decoder = choice_decoder.append(pd.DataFrame(index=['sound', 'dprime', 'nDim', 'axes', 'soundCategory', 'site', 'batch'],
-                                    data=['target', tdp** 0.5, nAx, 'target', 'target', site, batch]).T)
-            choice_decoder = choice_decoder.append(pd.DataFrame(index=['sound', 'dprime', 'nDim', 'axes', 'soundCategory', 'site', 'batch'],
-                                    data=['target', pdp** 0.5, nAx, 'pca', 'target', site, batch]).T)
-            choice_decoder = choice_decoder.append(pd.DataFrame(index=['sound', 'dprime', 'nDim', 'axes', 'soundCategory', 'site', 'batch'],
-                                    data=['target', ddp** 0.5, nAx, 'delta', 'target', site, batch]).T)
-            choice_decoder = choice_decoder.append(pd.DataFrame(index=['sound', 'dprime', 'nDim', 'axes', 'soundCategory', 'site', 'batch'],
-                                    data=['target', tcdp** 0.5, nAx, 'tarCat', 'target', site, batch]).T)
+            for k in projections.keys():
+                a = np.array(projections[k])[np.array(masks[k])][np.newaxis, :]
+                b = np.array(projections[k])[np.array(masks[k])==False][np.newaxis, :]
+                dp, _, _, _, _, _ = compute_dprime(a, b)
+                #chance_dp, pvalue = compute_dprime_noiseFloor(a, b)
+                choice_decoder = choice_decoder.append(pd.DataFrame(index=['sound', 'dprime', 'nDim', 'axes', 'soundCategory', 'site', 'batch'],
+                                    data=['target', dp** 0.5, nAx, k, 'target', site, batch]).T)
 
 
         # ======================= STIMULUS DECODING ============================
@@ -257,19 +200,11 @@ for batch in batches:
             d = np.concatenate((d1, d2), axis=0)
             mask = np.concatenate((np.zeros(d1.shape[0]), np.ones(d2.shape[0])), axis=0).astype(bool)
             for nAx in range(nPCs): 
-                cat_correct = np.zeros(d.shape[0])
-                tar_correct = np.zeros(d.shape[0])
-                pca_correct = np.zeros(d.shape[0])
-                delt_correct = np.zeros(d.shape[0])
-                tc_correct = np.zeros(d.shape[0])
-                cat_mask = np.zeros(d.shape[0]).astype(bool)
-                tar_mask = np.zeros(d.shape[0]).astype(bool)
-                pca_mask = np.zeros(d.shape[0]).astype(bool)
-                delt_mask = np.zeros(d.shape[0]).astype(bool)
-                tc_mask = np.zeros(d.shape[0]).astype(bool)
+                projections = {k: [] for k in axes.keys()}
+                masks = {k: [] for k in axes.keys()}
                 for i in range(d.shape[0]):
                     idx = np.array(list(set(range(d.shape[0])).difference(set([i]))))
-                    for ax_str in ['catch', 'target', 'pca', 'delta', 'tarCat']:
+                    for ax_str in axes.keys():
                         _d = d[idx]
                         _choice = mask[idx]
                         # project into space
@@ -282,41 +217,18 @@ for batch in batches:
                             # project held out point onto axis
                             val = d[[i], :].dot(axes[ax_str][range(0, nAx+1), :].T).dot(wopt / np.linalg.norm(wopt))[0][0]
                         else:
-                            val = d[[i], :].dot(axes[ax_str][range(0, nAx+1), :].T)
+                            val = d[[i], :].dot(axes[ax_str][range(0, nAx+1), :].T)[0][0]
                         # save projections            
-                        if ax_str=='catch':
-                            cat_correct[i] = val
-                            cat_mask[i] = mask[i]
-                        elif ax_str=='target': 
-                            tar_correct[i] = val
-                            tar_mask[i] = mask[i]
-                        elif ax_str=='pca':
-                            pca_correct[i] = val
-                            pca_mask[i] = mask[i]
-                        elif ax_str=='delta':
-                            delt_correct[i] = val
-                            delt_mask[i] = mask[i]
-                        elif ax_str=='tarCat':
-                            tc_correct[i] = val
-                            tc_mask[i] = mask[i]
+                        projections[ax_str].append(val)
+                        masks[ax_str].append(mask[i])
                 
                 # compute dprime for each 
-                cdp, _, _, _, _, _ = compute_dprime(cat_correct[cat_mask][np.newaxis, :], cat_correct[~cat_mask][np.newaxis, :])
-                tdp, _, _, _, _, _ = compute_dprime(tar_correct[tar_mask][np.newaxis, :], tar_correct[~tar_mask][np.newaxis, :])
-                pdp, _, _, _, _, _ = compute_dprime(pca_correct[pca_mask][np.newaxis, :], pca_correct[~pca_mask][np.newaxis, :])
-                ddp, _, _, _, _, _ = compute_dprime(delt_correct[delt_mask][np.newaxis, :], delt_correct[~delt_mask][np.newaxis, :])
-                tcdp, _, _, _, _, _ = compute_dprime(tc_correct[tc_mask][np.newaxis, :], tc_correct[~tc_mask][np.newaxis, :])
-
-                stimulus_decoder = stimulus_decoder.append(pd.DataFrame(index=['dprime', 'axes', 'nDim', 'pair', 'snr', 'site', 'batch'],
-                                                                data=[cdp, 'catch', nAx, '_'.join(pair), snr, site, batch]).T)
-                stimulus_decoder = stimulus_decoder.append(pd.DataFrame(index=['dprime', 'axes', 'nDim', 'pair', 'snr', 'site', 'batch'],
-                                                                data=[tdp, 'target', nAx, '_'.join(pair), snr, site, batch]).T)
-                stimulus_decoder = stimulus_decoder.append(pd.DataFrame(index=['dprime', 'axes', 'nDim', 'pair', 'snr', 'site', 'batch'],
-                                                                data=[pdp, 'pca', nAx, '_'.join(pair), snr, site, batch]).T)
-                stimulus_decoder = stimulus_decoder.append(pd.DataFrame(index=['dprime', 'axes', 'nDim', 'pair', 'snr', 'site', 'batch'],
-                                                                data=[ddp, 'delta', nAx, '_'.join(pair), snr, site, batch]).T)
-                stimulus_decoder = stimulus_decoder.append(pd.DataFrame(index=['dprime', 'axes', 'nDim', 'pair', 'snr', 'site', 'batch'],
-                                                                data=[tcdp, 'tarCat', nAx, '_'.join(pair), snr, site, batch]).T)
+                for k in projections.keys():
+                    a = np.array(projections[k])[np.array(masks[k])][np.newaxis, :]
+                    b = np.array(projections[k])[np.array(masks[k])==False][np.newaxis, :]
+                    dp, _, _, _, _, _ = compute_dprime(a, b)
+                    stimulus_decoder = stimulus_decoder.append(pd.DataFrame(index=['dprime', 'axes', 'nDim', 'pair', 'snr', 'site', 'batch'],
+                                                                data=[dp ** 0.5, k, nAx, '_'.join(pair), snr, site, batch]).T)
 
 
 dtypes = {

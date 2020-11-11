@@ -72,16 +72,13 @@ sem /= m.max()
 m /= m.max()
 ax[1, 1].plot(nDim, m, lw=2)
 ax[1, 1].fill_between(nDim, m-sem, m+sem, lw=0, alpha=0.3)
-ax[1, 1].set_title('Noise dims, choice decoding')
+ax[1, 1].set_title('Delta noise dims, choice decoding')
 ax[1, 1].axhline(0, linestyle='--', color='grey', lw=2)
 
 ylim = (np.min(ax[1, 0].get_ylim() + ax[1, 1].get_ylim()), np.max(ax[1, 0].get_ylim() + ax[1, 1].get_ylim()))
 ax[1, 0].set_ylim(ylim)
 ax[1, 1].set_ylim(ylim)
 
-f.canvas.set_window_title(s)
-
 f.tight_layout()
-
 
 plt.show()
