@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 import pickle
 from itertools import combinations, product
-from charlieTools.decoding import compute_dprime
+from charlieTools.decoding import compute_dprime, compute_dprime_noiseFloor
 import nems_lbhb.tin_helpers as thelp
 import nems.db as nd
 
@@ -165,6 +165,8 @@ for batch in batches:
             pdp, _, _, _, _, _ = compute_dprime(pca_correct[pca_mask][np.newaxis, :], pca_correct[~pca_mask][np.newaxis, :])
             ddp, _, _, _, _, _ = compute_dprime(delt_correct[delt_mask][np.newaxis, :], delt_correct[~delt_mask][np.newaxis, :])
             tcdp, _, _, _, _, _ = compute_dprime(tc_correct[tc_mask][np.newaxis, :], tc_correct[~tc_mask][np.newaxis, :])
+
+            chance_dp, pvalue = compute_dprime_noiseFloor(pca_correct[pca_mask][np.newaxis, :], pca_correct[~pca_mask][np.newaxis, :])
 
             choice_decoder = choice_decoder.append(pd.DataFrame(index=['sound', 'dprime', 'nDim', 'axes', 'soundCategory', 'site', 'batch'],
                                     data=['catch', cdp** 0.5, nAx, 'catch', 'catch', site, batch]).T)
