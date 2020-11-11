@@ -336,7 +336,7 @@ dtypes = {
     'soundCategory': 'object',
     'site': 'object',
     'batch': 'object'
-}
+}   
 choice_decoder = choice_decoder.astype(dtypes)
 
 stimulus_decoder.to_pickle(DIR + '/results/res_stimulus_decoder.pickle')
