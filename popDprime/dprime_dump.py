@@ -263,6 +263,8 @@ for batch in batches:
                 mpca = 0
                 sdpc = 1
 
+            dref = {k: v[:, :, start:end] for k, v in dref.items()}
+
             dref = {k: (v.transpose(0, -1, 1) - mpca).transpose(0, -1, 1)  for (k, v) in dref.items()}
             dref = {k: (v.transpose(0, -1, 1) / sdpc).transpose(0, -1, 1)  for (k, v) in dref.items()}
             Rall_u = np.vstack([dref[k].sum(axis=2).mean(axis=0) for k in dref.keys()])

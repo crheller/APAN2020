@@ -16,7 +16,7 @@ import matplotlib as mpl
 mpl.rcParams['axes.spines.right'] = False
 mpl.rcParams['axes.spines.top'] = False
 
-df = pd.read_pickle(DIR+"results/rsc_df_pr.pickle")
+df = pd.read_pickle(DIR+"results/rsc_df.pickle")
 df = df[~df.active.isna() & ~df.passive.isna()]
 df['diff'] = df['passive'] - df['active']
 di_metric = 'DIref'
