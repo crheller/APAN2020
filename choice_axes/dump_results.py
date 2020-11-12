@@ -14,6 +14,7 @@ import pandas as pd
 import pickle
 from itertools import combinations, product
 from charlieTools.decoding import compute_dprime, compute_dprime_noiseFloor
+import charlieTools.simulate_data as sim
 import nems_lbhb.tin_helpers as thelp
 import nems.db as nd
 
@@ -108,8 +109,6 @@ for batch in batches:
         axes['tarCat'] = np.concatenate((tc_axis[np.newaxis, :], pca.components_), axis=0)
 
         nPCs = min([8, rec['resp'].shape[0]])
-
-
         # ============================= CHOICE DECODING =========================
         # for each stimulus, decode choice using the above sets of axes. Use leave-one-out
         # decoding and report the proportion correct
@@ -147,9 +146,11 @@ for batch in batches:
                 a = np.array(projections[k])[np.array(masks[k])][np.newaxis, :]
                 b = np.array(projections[k])[np.array(masks[k])==False][np.newaxis, :]
                 dp, _, _, _, _, _ = compute_dprime(a, b)
-                #chance_dp, pvalue = compute_dprime_noiseFloor(a, b)
-                choice_decoder = choice_decoder.append(pd.DataFrame(index=['sound', 'dprime', 'nDim', 'axes', 'soundCategory', 'site', 'batch'],
-                                    data=['catch', dp** 0.5, nAx, k, 'catch', site, batch]).T)
+                chance_dp, pvalue = compute_dprime_noiseFloor(a, b)
+                chance_dp = np.sqrt(chance_dp)
+                dp = (dp ** 0.5) - chance_dp.mean()
+                choice_decoder = choice_decoder.append(pd.DataFrame(index=['sound', 'dprime', 'pvalue', 'nDim', 'axes', 'soundCategory', 'site', 'batch'],
+                                    data=['catch', dp, pvalue, nAx, k, 'catch', site, batch]).T)
 
 
         # HIT / MISS DECODING
@@ -185,9 +186,11 @@ for batch in batches:
                 a = np.array(projections[k])[np.array(masks[k])][np.newaxis, :]
                 b = np.array(projections[k])[np.array(masks[k])==False][np.newaxis, :]
                 dp, _, _, _, _, _ = compute_dprime(a, b)
-                #chance_dp, pvalue = compute_dprime_noiseFloor(a, b)
-                choice_decoder = choice_decoder.append(pd.DataFrame(index=['sound', 'dprime', 'nDim', 'axes', 'soundCategory', 'site', 'batch'],
-                                    data=['target', dp** 0.5, nAx, k, 'target', site, batch]).T)
+                chance_dp, pvalue = compute_dprime_noiseFloor(a, b)
+                chance_dp = np.sqrt(chance_dp)
+                dp = (dp ** 0.5) - chance_dp.mean()
+                choice_decoder = choice_decoder.append(pd.DataFrame(index=['sound', 'dprime', 'pvalue', 'nDim', 'axes', 'soundCategory', 'site', 'batch'],
+                                    data=['target', dp, pvalue, nAx, k, 'target', site, batch]).T)
 
 
         # ======================= STIMULUS DECODING ============================
@@ -227,8 +230,11 @@ for batch in batches:
                     a = np.array(projections[k])[np.array(masks[k])][np.newaxis, :]
                     b = np.array(projections[k])[np.array(masks[k])==False][np.newaxis, :]
                     dp, _, _, _, _, _ = compute_dprime(a, b)
-                    stimulus_decoder = stimulus_decoder.append(pd.DataFrame(index=['dprime', 'axes', 'nDim', 'pair', 'snr', 'site', 'batch'],
-                                                                data=[dp ** 0.5, k, nAx, '_'.join(pair), snr, site, batch]).T)
+                    chance_dp, pvalue = compute_dprime_noiseFloor(a, b)
+                    chance_dp = np.sqrt(chance_dp)
+                    dp = (dp ** 0.5) - chance_dp.mean()
+                    stimulus_decoder = stimulus_decoder.append(pd.DataFrame(index=['dprime', 'pvalue', 'axes', 'nDim', 'pair', 'snr', 'site', 'batch'],
+                                                                data=[dp, pvalue, k, nAx, '_'.join(pair), snr, site, batch]).T)
 
 
 dtypes = {

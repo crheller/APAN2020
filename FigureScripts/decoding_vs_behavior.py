@@ -21,6 +21,7 @@ df['dp_diag_sqrt'] = np.sqrt(df['dp_diag'])
 di_metric = 'DI'  # for this data, DI = DIref if df.aref_tar = True
 dp_metric = 'dp_opt_sqrt'
 diff_norm = False
+set_ylim = True
 
 # ======================== FIGURE 1 ================================
 f, ax = plt.subplots(1, 2, figsize=(8, 4))
@@ -52,6 +53,8 @@ ax[1].axhline(0, linestyle='--', color='k')
 ax[1].axvline(0.5, linestyle='--', color='k')
 r, p = ss.pearsonr(resga[di_metric], diff)
 ax[1].set_title(r"$r$: %s, $p$: %s" % (round(r, 3), round(p, 3)))
+if set_ylim:
+    ax[1].set_ylim((None, 2))
 
 f.tight_layout()
 
