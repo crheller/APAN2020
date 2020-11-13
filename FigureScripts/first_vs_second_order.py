@@ -175,7 +175,7 @@ ax[1, 3].set_xlabel('Behavior performance (DI')
 ax[1, 3].axhline(0, linestyle='--', color='grey')
 ax[1, 3].axvline(0.5, linestyle='--', color='grey')
 ax[1, 3].set_title(r"$R^2$: %s, $p < 0.05$" % round(r['r2']['lambda_tot'], 3))
-
+print(ss.pearsonr(y, X['lambda_tot']))
 f.tight_layout()
 
 f.savefig(DIR + 'pyfigures/first_vs_second_order.svg')
