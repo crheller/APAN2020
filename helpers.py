@@ -55,22 +55,22 @@ def fit_OLS_model(X, y, replace=True, nboot=100, njacks=10):
                 xindtest = xtest.copy()
                 xindtest = xindtest[[k]+const]
                 predind[k].append(mi.predict(xindtest).values)
-
+       
         # compute cross-validated r2 for full model
-        _r2 = (1 - (sum((np.concatenate(pred) - np.concatenate(test_data))**2) / \
-                        sum((np.concatenate(test_data) - np.concatenate(test_data).mean())**2))) 
+        _r2 = (1 - (sum((np.concatenate(pred).squeeze() - np.concatenate(test_data).squeeze())**2) / \
+                        sum((np.concatenate(test_data).squeeze() - np.concatenate(test_data).squeeze().mean())**2))) 
         r2.append(_r2)
 
         # single regressor r2s
         for k in reg:
-            _r2i = (1 - (sum((np.concatenate(predind[k]) - np.concatenate(test_data))**2) / \
-                        sum((np.concatenate(test_data) - np.concatenate(test_data).mean())**2))) 
+            _r2i = (1 - (sum((np.concatenate(predind[k]).squeeze() - np.concatenate(test_data).squeeze())**2) / \
+                        sum((np.concatenate(test_data).squeeze() - np.concatenate(test_data).squeeze().mean())**2))) 
             r2i[k].append(_r2i)
         
         # get unique r2s from shuffling
         for k in reg:
-            _r2shuf = (1 - (sum((np.concatenate(predshuf[k]) - np.concatenate(test_data))**2) / \
-                        sum((np.concatenate(test_data) - np.concatenate(test_data).mean())**2))) 
+            _r2shuf = (1 - (sum((np.concatenate(predshuf[k]).squeeze() - np.concatenate(test_data).squeeze())**2) / \
+                        sum((np.concatenate(test_data).squeeze() - np.concatenate(test_data).squeeze().mean())**2))) 
             _r2u = _r2 - _r2shuf
             if _r2shuf > 0: r2u[k].append(_r2u) 
             else: r2u[k].append(_r2)
