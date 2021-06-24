@@ -15,11 +15,14 @@ mpl.rcParams['axes.spines.top'] = False
 choice = pd.read_pickle(DIR + 'results/res_choice_decoder.pickle')
 stimulus = pd.read_pickle(DIR + 'results/res_stimulus_decoder.pickle')
 
+choice = choice[choice.batch==324]
+stimulus = stimulus[stimulus.batch==324]
+
 
 # Ni et al - like figure
-for axes in ['target', 'catch', 'pca', 'delta', 'tarCat']:
+for axes in stimulus['axes'].unique(): #['target', 'catch', 'pca', 'delta', 'tarCat']:
     f, ax = plt.subplots(1, 1, figsize=(4, 4))
-    snrs = [0]
+    snrs = [-5]
 
     # RAW DPRIMES
     # stimulus decoding

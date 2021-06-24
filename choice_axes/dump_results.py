@@ -32,7 +32,7 @@ for batch in batches:
     sites = np.unique([s[:7] for s in nd.get_batch_cells(batch).cellid])
     sites = [s for s in sites if (s != 'ARM007c') & (s != 'CRD013b')]
     for site in sites:
-        manager = BAPHYExperiment(batch=batch, siteid=site[:7], rawid=rawid)
+        manager = BAPHYExperiment(batch=batch, cellid=site[:7], rawid=rawid)
         rec = manager.get_recording(recache=recache, **options)
         rec['resp'] = rec['resp'].rasterize()
 
@@ -85,7 +85,7 @@ for batch in batches:
         else:
             axes['target'] = np.nan
 
-        # ======================= GET PC NOISE AXIS ===========================
+        # ======================= GET PASSIVE PC NOISE AXIS ===========================
         rp = rec.and_mask(['PASSIVE_EXPERIMENT'])
         d = np.concatenate([(rec['resp'].extract_epoch(t, mask=rp['mask'])[:, :, tstart:tend].mean(axis=-1) - \
                             rec['resp'].extract_epoch(t, mask=rp['mask'])[:, :, tstart:tend].mean(axis=(0, -1))) for t in targets+catches], 
@@ -93,6 +93,15 @@ for batch in batches:
         pca = PCA(n_components=nNeurons)
         pca.fit(d)
         axes['pca'] = pca.components_
+
+        # ====================== GET ACTIVE PC NOISE AXIS (TAR alone) =========================
+        rp = rec.and_mask(['HIT_TRIAL','MISS_TRIAL'])
+        d = np.concatenate([(rec['resp'].extract_epoch(t, mask=rp['mask'])[:, :, tstart:tend].mean(axis=-1) - \
+                            rec['resp'].extract_epoch(t, mask=rp['mask'])[:, :, tstart:tend].mean(axis=(0, -1))) for t in targets], 
+                            axis=0)
+        pca = PCA(n_components=nNeurons)
+        pca.fit(d)
+        axes['pca_active'] = pca.components_
 
         # ======================= GET DELTA NOISE AXIS ==========================
         lv = pickle.load(open(DIR + '/results/drsc_axes.pickle', "rb"))

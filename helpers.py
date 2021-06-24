@@ -16,7 +16,7 @@ def fit_OLS_model(X, y, replace=True, nboot=100, njacks=10):
     r2i = {k: [] for k in reg}
     r2u = {k: [] for k in reg}
     coef = {k: [] for k in reg}
-    # 10-fold cross val for 100 different bootstrap resamples
+    # n-fold cross-val for each of 100 different bootstrap resamples
     for boot in range(nboot):
         inds = np.random.choice(range(0, X.shape[0]), X.shape[0], replace=replace).tolist()
         pred = []
