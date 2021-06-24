@@ -16,7 +16,7 @@ import matplotlib as mpl
 mpl.rcParams['axes.spines.right'] = False
 mpl.rcParams['axes.spines.top'] = False
     
-df = pd.read_pickle(DIR+"results/res_pr.pickle")
+df = pd.read_pickle(DIR+"results/res.pickle")
 df['dp_opt_sqrt'] = np.sqrt(df['dp_opt'])
 df['dp_diag_sqrt'] = np.sqrt(df['dp_diag'])
 dfbp = pd.read_pickle(DIR+"results/res_pr_br.pickle")
