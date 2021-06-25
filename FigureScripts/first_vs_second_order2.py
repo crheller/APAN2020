@@ -26,7 +26,7 @@ mpl.rcParams['axes.spines.top'] = False
 mpl.rcParams['font.size'] = 8
     
 np.random.seed(123)    
-pr = True
+pr = False
 
 if pr:
     df = pd.read_pickle(DIR+"results/res_pr.pickle")
